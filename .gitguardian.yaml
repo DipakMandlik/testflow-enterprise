@@ -1,0 +1,5 @@
+version: 2
+secret:
+  ignored-matches:
+    - name: "Pibythree Quality Hub demo password"
+      match: "pibythree@2026"
