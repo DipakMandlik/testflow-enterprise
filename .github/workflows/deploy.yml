@@ -11,9 +11,6 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  GH_PAGES_BASE: /${{ github.event.repository.name }}/
-
 jobs:
   build-and-test:
     name: Lint, typecheck, test and build
@@ -53,6 +50,8 @@ jobs:
           if-no-files-found: ignore
 
       - name: Build static site for GitHub Pages
+        env:
+          GH_PAGES_BASE: /${{ github.event.repository.name }}/
         run: bun run build:gh-pages
 
       - name: Upload Pages artifact
