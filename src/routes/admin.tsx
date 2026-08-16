@@ -63,7 +63,6 @@ function AdminPage() {
           <ul className="divide-y divide-border">
             {state.environments.map((e) => (
               <li key={e.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                <span className="mono-id text-primary">{e.code}</span>
                 <span>{e.name}</span>
               </li>
             ))}
@@ -75,7 +74,7 @@ function AdminPage() {
             <h2 className="text-sm font-semibold">Platform audit trail</h2>
           </header>
           <div className="max-h-96 overflow-y-auto p-4">
-            <ActivityTimeline state={state} events={[...state.auditEvents].slice(-40).reverse()} />
+            <ActivityTimeline state={state} events={[...state.audit].slice(-40).reverse()} />
           </div>
         </section>
       </div>
