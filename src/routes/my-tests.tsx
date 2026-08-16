@@ -16,26 +16,22 @@ import {
 } from "@/components/ui/select";
 import { useTms } from "@/lib/tms/store";
 import {
+  assignmentById,
   currentUser,
   executionProgress,
-  moduleById,
-  projectById,
-  testCaseById,
+  stationById,
+  templateById,
+  unitById,
 } from "@/lib/tms/services";
 import { ExecutionStatus } from "@/types/domain";
 
 export const Route = createFileRoute("/my-tests")({
   head: () => ({
     meta: [
-      { title: "My Tests — Tata Electronics TMS" },
+      { title: "My Tests — Pibythree Quality Hub" },
       {
         name: "description",
-        content: "Filter, sort and act on every test assigned to you across active programmes.",
-      },
-      { property: "og:title", content: "My Tests — Tata Electronics TMS" },
-      {
-        property: "og:description",
-        content: "Your assigned validation work with contextual actions.",
+        content: "Filter, sort and act on every unit assigned to you across active stations.",
       },
     ],
   }),
@@ -45,8 +41,8 @@ export const Route = createFileRoute("/my-tests")({
 const ACTION_BY_STATUS: Partial<Record<ExecutionStatus, string>> = {
   [ExecutionStatus.ASSIGNED]: "Start",
   [ExecutionStatus.IN_PROGRESS]: "Continue",
-  [ExecutionStatus.SENT_BACK]: "Revise",
-  [ExecutionStatus.BLOCKED]: "Unblock",
+  [ExecutionStatus.RETEST_REQUIRED]: "Resume Retest",
+  [ExecutionStatus.RETEST_IN_PROGRESS]: "Continue Retest",
 };
 
 function MyTestsPage() {
@@ -55,39 +51,40 @@ function MyTestsPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
-  const [project, setProject] = useState("all");
+  const [station, setStation] = useState("all");
 
   const rows = useMemo(() => {
     if (!user) return [];
     return state.executions
       .filter((e) => e.testerId === user.id)
-      .map((e) => ({ execution: e, testCase: testCaseById(state, e.testCaseId)! }))
-      .filter(({ execution, testCase }) => {
-        if (!testCase) return false;
+      .map((e) => ({
+        execution: e,
+        unit: unitById(state, e.unitId)!,
+        template: templateById(state, e.templateId)!,
+        assignment: assignmentById(state, e.assignmentId),
+      }))
+      .filter(({ execution, unit, assignment }) => {
+        if (!unit) return false;
         if (status !== "all" && execution.status !== status) return false;
-        if (priority !== "all" && testCase.priority !== priority) return false;
-        if (project !== "all" && testCase.projectId !== project) return false;
+        if (assignment && priority !== "all" && assignment.priority !== priority) return false;
+        if (station !== "all" && execution.stationId !== station) return false;
         const q = query.trim().toLowerCase();
         if (!q) return true;
-        return (
-          testCase.code.toLowerCase().includes(q) ||
-          testCase.title.toLowerCase().includes(q) ||
-          execution.code.toLowerCase().includes(q)
-        );
+        return unit.usn.toLowerCase().includes(q) || execution.code.toLowerCase().includes(q);
       })
       .sort((a, b) => b.execution.updatedAt.localeCompare(a.execution.updatedAt));
-  }, [state, user, query, status, priority, project]);
+  }, [state, user, query, status, priority, station]);
 
   return (
     <AppShell
       title="My Tests"
-      description="Every execution assigned to you, with the next action for each."
+      description="Every unit assigned to you, with the next action for each."
     >
       <div className="mb-4 flex flex-wrap gap-2">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by test ID, title or execution ID"
+          placeholder="Search by USN or execution ID"
           className="h-9 w-full sm:max-w-xs"
           aria-label="Search my tests"
         />
@@ -117,15 +114,15 @@ function MyTestsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={project} onValueChange={setProject}>
-          <SelectTrigger className="h-9 w-52" aria-label="Filter by project">
-            <SelectValue placeholder="Project" />
+        <Select value={station} onValueChange={setStation}>
+          <SelectTrigger className="h-9 w-48" aria-label="Filter by station">
+            <SelectValue placeholder="Station" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All projects</SelectItem>
-            {state.projects.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
+            <SelectItem value="all">All stations</SelectItem>
+            {state.stations.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.code} — {s.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -143,8 +140,8 @@ function MyTestsPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left">
               <tr className="label-caps">
-                <th className="px-4 py-2 font-medium">Test case</th>
-                <th className="hidden px-4 py-2 font-medium md:table-cell">Module</th>
+                <th className="px-4 py-2 font-medium">Unit</th>
+                <th className="hidden px-4 py-2 font-medium md:table-cell">Station</th>
                 <th className="px-4 py-2 font-medium">Status</th>
                 <th className="hidden px-4 py-2 font-medium sm:table-cell">Progress</th>
                 <th className="hidden px-4 py-2 font-medium lg:table-cell">Updated</th>
@@ -152,37 +149,38 @@ function MyTestsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map(({ execution, testCase }) => {
+              {rows.map(({ execution, unit, template, assignment }) => {
                 const progress = executionProgress(state, execution);
+                const stationRow = stationById(state, execution.stationId);
                 return (
                   <tr key={execution.id} className="hover:bg-accent/40">
                     <td className="px-4 py-2.5">
                       <Link
-                        to="/tests/$testCaseId"
-                        params={{ testCaseId: testCase.id }}
+                        to="/units/$unitId"
+                        params={{ unitId: unit.id }}
                         className="mono-id text-primary hover:underline"
                       >
-                        {testCase.code}
+                        {unit.usn}
                       </Link>
-                      <p className="max-w-sm truncate">{testCase.title}</p>
+                      <p className="max-w-sm truncate">
+                        {template.name} Rev {template.revision}
+                      </p>
                       <div className="mt-1 flex items-center gap-2">
-                        <PriorityBadge priority={testCase.priority} />
+                        {assignment && <PriorityBadge priority={assignment.priority} />}
                         <span className="mono-id text-xs text-muted-foreground">
                           {execution.code}
                         </span>
                       </div>
                     </td>
                     <td className="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
-                      {moduleById(state, testCase.moduleId)?.name}
-                      <span className="block text-xs">
-                        {projectById(state, testCase.projectId)?.name}
-                      </span>
+                      {stationRow?.code}
+                      <span className="block text-xs">{stationRow?.name}</span>
                     </td>
                     <td className="px-4 py-2.5">
                       <StatusBadge status={execution.status} role={user?.role} />
                     </td>
                     <td className="hidden px-4 py-2.5 text-xs text-muted-foreground tabular-nums sm:table-cell">
-                      {progress.completed}/{progress.total} steps
+                      {progress.completed}/{progress.total} checks
                     </td>
                     <td className="hidden px-4 py-2.5 text-xs text-muted-foreground lg:table-cell">
                       {format(new Date(execution.updatedAt), "dd MMM, HH:mm")}

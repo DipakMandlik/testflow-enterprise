@@ -9,8 +9,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useTms } from "@/lib/tms/store";
-import { currentUser, moduleById, projectById, userById } from "@/lib/tms/services";
-import { canViewReview } from "@/lib/tms/permissions";
+import { currentUser, templateById, unitById, userById } from "@/lib/tms/services";
+import { canManageTemplates, canViewReview } from "@/lib/tms/permissions";
 
 export function CommandPalette({
   open,
@@ -47,29 +47,29 @@ export function CommandPalette({
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search test cases, executions, testers, projects…" />
+      <CommandInput placeholder="Search units, checks, testers, templates…" />
       <CommandList>
         <CommandEmpty>No matching records.</CommandEmpty>
-        <CommandGroup heading="Test cases">
-          {state.testCases.map((tc) => (
+        <CommandGroup heading="Units">
+          {state.units.map((unit) => (
             <CommandItem
-              key={tc.id}
-              value={`${tc.code} ${tc.title} ${projectById(state, tc.projectId)?.name ?? ""} ${moduleById(state, tc.moduleId)?.name ?? ""}`}
-              onSelect={() => go(`/tests/${tc.id}`)}
+              key={unit.id}
+              value={`${unit.usn} ${unit.familyCode}`}
+              onSelect={() => go(`/units/${unit.id}`)}
             >
-              <span className="mono-id text-primary">{tc.code}</span>
-              <span className="truncate">{tc.title}</span>
+              <span className="mono-id text-primary">{unit.usn}</span>
+              <span className="truncate">{unit.familyCode}</span>
             </CommandItem>
           ))}
         </CommandGroup>
         <CommandGroup heading="Executions">
           {visibleExecutions.map((ex) => {
-            const tc = state.testCases.find((t) => t.id === ex.testCaseId);
+            const unit = unitById(state, ex.unitId);
             const tester = userById(state, ex.testerId);
             return (
               <CommandItem
                 key={ex.id}
-                value={`${ex.code} ${tc?.code ?? ""} ${tc?.title ?? ""} ${tester?.name ?? ""} ${ex.status}`}
+                value={`${ex.code} ${unit?.usn ?? ""} ${tester?.name ?? ""} ${ex.status}`}
                 onSelect={() =>
                   go(
                     canViewReview(user) && user.role !== "tester"
@@ -80,8 +80,23 @@ export function CommandPalette({
               >
                 <span className="mono-id text-primary">{ex.code}</span>
                 <span className="truncate">
-                  {tc?.code} · {tester?.name}
+                  {unit?.usn} · {tester?.name}
                 </span>
+              </CommandItem>
+            );
+          })}
+        </CommandGroup>
+        <CommandGroup heading="Checks">
+          {state.templateChecks.map((check) => {
+            const template = templateById(state, check.templateId);
+            return (
+              <CommandItem
+                key={check.id}
+                value={`${check.checkCode} ${check.title} ${template?.name ?? ""}`}
+                onSelect={() => go(`/templates/${check.templateId}`)}
+              >
+                <span className="mono-id text-primary">{check.checkCode}</span>
+                <span className="truncate">{check.title}</span>
               </CommandItem>
             );
           })}
@@ -99,6 +114,11 @@ export function CommandPalette({
           <CommandItem value="reports analytics" onSelect={() => go("/reports")}>
             Reports
           </CommandItem>
+          {canManageTemplates(user) && (
+            <CommandItem value="templates" onSelect={() => go("/templates")}>
+              Templates
+            </CommandItem>
+          )}
           <CommandItem value="administration" onSelect={() => go("/admin")}>
             Administration
           </CommandItem>

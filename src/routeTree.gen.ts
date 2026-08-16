@@ -15,10 +15,14 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MyTestsRouteImport } from './routes/my-tests'
 import { Route as OtpRouteImport } from './routes/otp'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as VerifyLocationRouteImport } from './routes/verify-location'
+import { Route as VerifyStationRouteImport } from './routes/verify-station'
 import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions.$executionId'
 import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
 import { Route as ReviewsExecutionIdRouteImport } from './routes/reviews.$executionId'
-import { Route as TestsTestCaseIdRouteImport } from './routes/tests.$testCaseId'
+import { Route as TemplatesIndexRouteImport } from './routes/templates.index'
+import { Route as TemplatesTemplateIdRouteImport } from './routes/templates.$templateId'
+import { Route as UnitsUnitIdRouteImport } from './routes/units.$unitId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -50,6 +54,16 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VerifyLocationRoute = VerifyLocationRouteImport.update({
+  id: '/verify-location',
+  path: '/verify-location',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyStationRoute = VerifyStationRouteImport.update({
+  id: '/verify-station',
+  path: '/verify-station',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExecutionsExecutionIdRoute = ExecutionsExecutionIdRouteImport.update({
   id: '/executions/$executionId',
   path: '/executions/$executionId',
@@ -65,9 +79,19 @@ const ReviewsExecutionIdRoute = ReviewsExecutionIdRouteImport.update({
   path: '/reviews/$executionId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TestsTestCaseIdRoute = TestsTestCaseIdRouteImport.update({
-  id: '/tests/$testCaseId',
-  path: '/tests/$testCaseId',
+const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
+  id: '/templates/',
+  path: '/templates/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesTemplateIdRoute = TemplatesTemplateIdRouteImport.update({
+  id: '/templates/$templateId',
+  path: '/templates/$templateId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnitsUnitIdRoute = UnitsUnitIdRouteImport.update({
+  id: '/units/$unitId',
+  path: '/units/$unitId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -78,10 +102,14 @@ export interface FileRoutesByFullPath {
   '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
   '/reports': typeof ReportsRoute
+  '/verify-location': typeof VerifyLocationRoute
+  '/verify-station': typeof VerifyStationRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/reviews/$executionId': typeof ReviewsExecutionIdRoute
-  '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
+  '/units/$unitId': typeof UnitsUnitIdRoute
   '/reviews/': typeof ReviewsIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,10 +118,14 @@ export interface FileRoutesByTo {
   '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
   '/reports': typeof ReportsRoute
+  '/verify-location': typeof VerifyLocationRoute
+  '/verify-station': typeof VerifyStationRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/reviews/$executionId': typeof ReviewsExecutionIdRoute
-  '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
+  '/units/$unitId': typeof UnitsUnitIdRoute
   '/reviews': typeof ReviewsIndexRoute
+  '/templates': typeof TemplatesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,10 +135,14 @@ export interface FileRoutesById {
   '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
   '/reports': typeof ReportsRoute
+  '/verify-location': typeof VerifyLocationRoute
+  '/verify-station': typeof VerifyStationRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/reviews/$executionId': typeof ReviewsExecutionIdRoute
-  '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
+  '/units/$unitId': typeof UnitsUnitIdRoute
   '/reviews/': typeof ReviewsIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,10 +153,14 @@ export interface FileRouteTypes {
     | '/my-tests'
     | '/otp'
     | '/reports'
+    | '/verify-location'
+    | '/verify-station'
     | '/executions/$executionId'
     | '/reviews/$executionId'
-    | '/tests/$testCaseId'
+    | '/templates/$templateId'
+    | '/units/$unitId'
     | '/reviews/'
+    | '/templates/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,10 +169,14 @@ export interface FileRouteTypes {
     | '/my-tests'
     | '/otp'
     | '/reports'
+    | '/verify-location'
+    | '/verify-station'
     | '/executions/$executionId'
     | '/reviews/$executionId'
-    | '/tests/$testCaseId'
+    | '/templates/$templateId'
+    | '/units/$unitId'
     | '/reviews'
+    | '/templates'
   id:
     | '__root__'
     | '/'
@@ -141,10 +185,14 @@ export interface FileRouteTypes {
     | '/my-tests'
     | '/otp'
     | '/reports'
+    | '/verify-location'
+    | '/verify-station'
     | '/executions/$executionId'
     | '/reviews/$executionId'
-    | '/tests/$testCaseId'
+    | '/templates/$templateId'
+    | '/units/$unitId'
     | '/reviews/'
+    | '/templates/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,10 +202,14 @@ export interface RootRouteChildren {
   MyTestsRoute: typeof MyTestsRoute
   OtpRoute: typeof OtpRoute
   ReportsRoute: typeof ReportsRoute
+  VerifyLocationRoute: typeof VerifyLocationRoute
+  VerifyStationRoute: typeof VerifyStationRoute
   ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
   ReviewsExecutionIdRoute: typeof ReviewsExecutionIdRoute
-  TestsTestCaseIdRoute: typeof TestsTestCaseIdRoute
+  TemplatesTemplateIdRoute: typeof TemplatesTemplateIdRoute
+  UnitsUnitIdRoute: typeof UnitsUnitIdRoute
   ReviewsIndexRoute: typeof ReviewsIndexRoute
+  TemplatesIndexRoute: typeof TemplatesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +256,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/verify-location': {
+      id: '/verify-location'
+      path: '/verify-location'
+      fullPath: '/verify-location'
+      preLoaderRoute: typeof VerifyLocationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-station': {
+      id: '/verify-station'
+      path: '/verify-station'
+      fullPath: '/verify-station'
+      preLoaderRoute: typeof VerifyStationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/executions/$executionId': {
       id: '/executions/$executionId'
       path: '/executions/$executionId'
@@ -225,11 +291,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReviewsExecutionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tests/$testCaseId': {
-      id: '/tests/$testCaseId'
-      path: '/tests/$testCaseId'
-      fullPath: '/tests/$testCaseId'
-      preLoaderRoute: typeof TestsTestCaseIdRouteImport
+    '/templates/': {
+      id: '/templates/'
+      path: '/templates'
+      fullPath: '/templates/'
+      preLoaderRoute: typeof TemplatesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates/$templateId': {
+      id: '/templates/$templateId'
+      path: '/templates/$templateId'
+      fullPath: '/templates/$templateId'
+      preLoaderRoute: typeof TemplatesTemplateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/units/$unitId': {
+      id: '/units/$unitId'
+      path: '/units/$unitId'
+      fullPath: '/units/$unitId'
+      preLoaderRoute: typeof UnitsUnitIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -242,10 +322,14 @@ const rootRouteChildren: RootRouteChildren = {
   MyTestsRoute: MyTestsRoute,
   OtpRoute: OtpRoute,
   ReportsRoute: ReportsRoute,
+  VerifyLocationRoute: VerifyLocationRoute,
+  VerifyStationRoute: VerifyStationRoute,
   ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
   ReviewsExecutionIdRoute: ReviewsExecutionIdRoute,
-  TestsTestCaseIdRoute: TestsTestCaseIdRoute,
+  TemplatesTemplateIdRoute: TemplatesTemplateIdRoute,
+  UnitsUnitIdRoute: UnitsUnitIdRoute,
   ReviewsIndexRoute: ReviewsIndexRoute,
+  TemplatesIndexRoute: TemplatesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

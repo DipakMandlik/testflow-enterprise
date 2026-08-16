@@ -12,7 +12,7 @@ import type { AppState } from "@/types/domain";
 import { createSeedState } from "./seed";
 import { currentUser, type Result } from "./services";
 
-const STORAGE_KEY = "te-tms-state-v3";
+const STORAGE_KEY = "pibythree-quality-hub-v1";
 
 // Repository boundary: the only place that touches persistence.
 // Swap this implementation for an HTTP/database repository without

@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { ExecutionStatus, type TestExecution, type User } from "@/types/domain";
+import { ExecutionStatus, type Execution, type User } from "@/types/domain";
 import {
   canApproveExecution,
   canExecuteTest,
   canManageAssignments,
-  canManageProjects,
-  canManageTestCases,
+  canManageDevices,
+  canManageFailureCategories,
+  canManagePlants,
+  canManageStations,
+  canManageTemplates,
   canManageUsers,
+  canRejectExecution,
+  canRequestRetest,
   canSubmitExecution,
   canViewReports,
+  canViewSeniorDashboard,
 } from "./permissions";
 
 const user = (overrides: Partial<User>): User => ({
@@ -18,29 +24,32 @@ const user = (overrides: Partial<User>): User => ({
   email: "test@example.com",
   role: "tester",
   active: true,
-  projectIds: [],
+  plantIds: [],
   ...overrides,
 });
 
-const execution = (overrides: Partial<TestExecution>): TestExecution => ({
+const execution = (overrides: Partial<Execution>): Execution => ({
   id: "exec-1",
   code: "EX-1000",
   assignmentId: "as-1",
-  testCaseId: "tc-1",
+  unitId: "unit-1",
+  templateId: "tpl-1",
   testerId: "u-1",
+  stationId: "sta-1",
   status: ExecutionStatus.IN_PROGRESS,
+  locationVerifiedAt: null,
+  stationVerifiedAt: null,
   startedAt: null,
   submittedAt: null,
   completedAt: null,
   updatedAt: new Date().toISOString(),
-  blockReason: null,
   summary: "",
   round: 1,
   ...overrides,
 });
 
 describe("canExecuteTest", () => {
-  it("lets the assigned tester execute an in-progress test", () => {
+  it("lets the assigned tester execute an in-progress execution", () => {
     expect(canExecuteTest(user({ role: "tester" }), execution({}))).toBe(true);
   });
 
@@ -54,37 +63,52 @@ describe("canExecuteTest", () => {
     expect(canExecuteTest(user({ role: "tester", active: false }), execution({}))).toBe(false);
   });
 
-  it("denies non-testers, even the assignee's own reviewer role", () => {
-    expect(canExecuteTest(user({ role: "reviewer" }), execution({}))).toBe(false);
+  it("denies non-testers, even the assignee's own quality-checker role", () => {
+    expect(canExecuteTest(user({ role: "quality_checker" }), execution({}))).toBe(false);
   });
 
-  it("denies execution once submitted for review", () => {
+  it("denies execution once submitted for review or decided", () => {
     expect(
-      canExecuteTest(user({ role: "tester" }), execution({ status: ExecutionStatus.SUBMITTED })),
+      canExecuteTest(
+        user({ role: "tester" }),
+        execution({ status: ExecutionStatus.PENDING_REVIEW }),
+      ),
     ).toBe(false);
     expect(
-      canExecuteTest(user({ role: "tester" }), execution({ status: ExecutionStatus.UNDER_REVIEW })),
+      canExecuteTest(user({ role: "tester" }), execution({ status: ExecutionStatus.APPROVED })),
+    ).toBe(false);
+    expect(
+      canExecuteTest(user({ role: "tester" }), execution({ status: ExecutionStatus.COMPLETED })),
+    ).toBe(false);
+    expect(
+      canExecuteTest(user({ role: "tester" }), execution({ status: ExecutionStatus.REJECTED })),
     ).toBe(false);
   });
 
-  it("allows a sent-back or blocked execution to be resumed", () => {
+  it("allows a retest-required or retest-in-progress execution to be resumed", () => {
     expect(
-      canExecuteTest(user({ role: "tester" }), execution({ status: ExecutionStatus.SENT_BACK })),
+      canExecuteTest(
+        user({ role: "tester" }),
+        execution({ status: ExecutionStatus.RETEST_REQUIRED }),
+      ),
     ).toBe(true);
     expect(
-      canExecuteTest(user({ role: "tester" }), execution({ status: ExecutionStatus.BLOCKED })),
+      canExecuteTest(
+        user({ role: "tester" }),
+        execution({ status: ExecutionStatus.RETEST_IN_PROGRESS }),
+      ),
     ).toBe(true);
   });
 });
 
 describe("canSubmitExecution", () => {
-  it("allows submitting in-progress or sent-back work", () => {
+  it("allows submitting in-progress or retest-in-progress work", () => {
     expect(canSubmitExecution(user({}), execution({ status: ExecutionStatus.IN_PROGRESS }))).toBe(
       true,
     );
-    expect(canSubmitExecution(user({}), execution({ status: ExecutionStatus.SENT_BACK }))).toBe(
-      true,
-    );
+    expect(
+      canSubmitExecution(user({}), execution({ status: ExecutionStatus.RETEST_IN_PROGRESS })),
+    ).toBe(true);
   });
 
   it("refuses to submit an assigned-but-not-started execution", () => {
@@ -92,31 +116,43 @@ describe("canSubmitExecution", () => {
       false,
     );
   });
+
+  it("refuses to submit while a retest has only been requested but not resumed", () => {
+    expect(
+      canSubmitExecution(user({}), execution({ status: ExecutionStatus.RETEST_REQUIRED })),
+    ).toBe(false);
+  });
 });
 
-describe("canApproveExecution (review gate)", () => {
-  it("lets a reviewer approve someone else's submitted execution", () => {
-    const reviewer = user({ id: "u-rev", role: "reviewer" });
-    expect(canApproveExecution(reviewer, execution({ status: ExecutionStatus.SUBMITTED }))).toBe(
+describe("review gate (approve / reject / request retest)", () => {
+  it("lets a quality checker review someone else's pending-review execution", () => {
+    const checker = user({ id: "u-check", role: "quality_checker" });
+    expect(
+      canApproveExecution(checker, execution({ status: ExecutionStatus.PENDING_REVIEW })),
+    ).toBe(true);
+    expect(canRejectExecution(checker, execution({ status: ExecutionStatus.PENDING_REVIEW }))).toBe(
+      true,
+    );
+    expect(canRequestRetest(checker, execution({ status: ExecutionStatus.PENDING_REVIEW }))).toBe(
       true,
     );
   });
 
-  it("blocks a reviewer from reviewing their own execution", () => {
-    const reviewer = user({ id: "u-1", role: "reviewer" });
+  it("blocks a quality checker from reviewing their own execution", () => {
+    const checker = user({ id: "u-1", role: "quality_checker" });
     expect(
       canApproveExecution(
-        reviewer,
-        execution({ status: ExecutionStatus.SUBMITTED, testerId: "u-1" }),
+        checker,
+        execution({ status: ExecutionStatus.PENDING_REVIEW, testerId: "u-1" }),
       ),
     ).toBe(false);
   });
 
-  it("blocks testers from approving", () => {
+  it("blocks testers from reviewing", () => {
     expect(
       canApproveExecution(
         user({ role: "tester", id: "other" }),
-        execution({ status: ExecutionStatus.SUBMITTED }),
+        execution({ status: ExecutionStatus.PENDING_REVIEW }),
       ),
     ).toBe(false);
   });
@@ -125,13 +161,13 @@ describe("canApproveExecution (review gate)", () => {
     expect(
       canApproveExecution(
         user({ id: "m", role: "manager" }),
-        execution({ status: ExecutionStatus.SUBMITTED }),
+        execution({ status: ExecutionStatus.PENDING_REVIEW }),
       ),
     ).toBe(true);
     expect(
       canApproveExecution(
         user({ id: "a", role: "admin" }),
-        execution({ status: ExecutionStatus.SUBMITTED }),
+        execution({ status: ExecutionStatus.PENDING_REVIEW }),
       ),
     ).toBe(true);
   });
@@ -139,7 +175,7 @@ describe("canApproveExecution (review gate)", () => {
   it("refuses review once already completed", () => {
     expect(
       canApproveExecution(
-        user({ id: "u-rev", role: "reviewer" }),
+        user({ id: "u-check", role: "quality_checker" }),
         execution({ status: ExecutionStatus.COMPLETED }),
       ),
     ).toBe(false);
@@ -147,24 +183,43 @@ describe("canApproveExecution (review gate)", () => {
 });
 
 describe("administration permissions", () => {
-  it("reserves user and project management for admins only", () => {
+  it("reserves users, plants, stations, and devices for admins only", () => {
     expect(canManageUsers(user({ role: "admin" }))).toBe(true);
     expect(canManageUsers(user({ role: "manager" }))).toBe(false);
-    expect(canManageProjects(user({ role: "admin" }))).toBe(true);
-    expect(canManageProjects(user({ role: "manager" }))).toBe(false);
+    expect(canManagePlants(user({ role: "admin" }))).toBe(true);
+    expect(canManagePlants(user({ role: "manager" }))).toBe(false);
+    expect(canManageStations(user({ role: "admin" }))).toBe(true);
+    expect(canManageDevices(user({ role: "admin" }))).toBe(true);
+    expect(canManageDevices(user({ role: "tester" }))).toBe(false);
   });
 
-  it("lets managers (and admins) manage test cases and assignments", () => {
-    expect(canManageTestCases(user({ role: "manager" }))).toBe(true);
-    expect(canManageTestCases(user({ role: "admin" }))).toBe(true);
-    expect(canManageTestCases(user({ role: "tester" }))).toBe(false);
+  it("lets managers (and admins) manage assignments", () => {
     expect(canManageAssignments(user({ role: "manager" }))).toBe(true);
-    expect(canManageAssignments(user({ role: "reviewer" }))).toBe(false);
+    expect(canManageAssignments(user({ role: "admin" }))).toBe(true);
+    expect(canManageAssignments(user({ role: "quality_checker" }))).toBe(false);
   });
 
-  it("lets reviewers, managers and admins view reports but not testers", () => {
-    expect(canViewReports(user({ role: "reviewer" }))).toBe(true);
+  it("reserves template authoring for template managers (and admins)", () => {
+    expect(canManageTemplates(user({ role: "template_manager" }))).toBe(true);
+    expect(canManageTemplates(user({ role: "admin" }))).toBe(true);
+    expect(canManageTemplates(user({ role: "manager" }))).toBe(false);
+  });
+
+  it("lets template managers and admins manage failure categories", () => {
+    expect(canManageFailureCategories(user({ role: "template_manager" }))).toBe(true);
+    expect(canManageFailureCategories(user({ role: "admin" }))).toBe(true);
+    expect(canManageFailureCategories(user({ role: "tester" }))).toBe(false);
+  });
+
+  it("lets quality checkers, managers and senior managers view reports but not testers", () => {
+    expect(canViewReports(user({ role: "quality_checker" }))).toBe(true);
     expect(canViewReports(user({ role: "manager" }))).toBe(true);
+    expect(canViewReports(user({ role: "senior_manager" }))).toBe(true);
     expect(canViewReports(user({ role: "tester" }))).toBe(false);
+  });
+
+  it("reserves the senior dashboard for senior managers", () => {
+    expect(canViewSeniorDashboard(user({ role: "senior_manager" }))).toBe(true);
+    expect(canViewSeniorDashboard(user({ role: "manager" }))).toBe(false);
   });
 });

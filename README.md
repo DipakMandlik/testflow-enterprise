@@ -1,43 +1,67 @@
-# Tata Electronics — Test Management & Test Execution Platform
+# Pibythree Quality Hub
 
-An enterprise test management and execution platform that replaces spreadsheet-driven manual
-testing with a structured digital workflow:
+A digital quality-inspection platform that replaces the Excel-based EQT functional test
+checklist with a structured digital workflow. The check — a single quality point on a
+template — is the central business object; every screen (assignment, execution, evidence,
+review, retest, reporting, audit) revolves around it:
 
 ```
-Login → Dashboard → My Tests → Test Case → Execute Steps → Record Results → Evidence
-  → Submit → Reviewer → Approve / Send Back → Revision → Resubmit → Approval
-  → Reporting → Audit
+Login → Verify Location/Station → Dashboard → My Tests → Digital Quality Worksheet
+  → Record outcome (Pass/Fail/N/A/Measurement) → Capture failure (category/severity/evidence)
+  → Submit → Quality Checker → Approve / Reject / Request Retest (per check)
+  → Tester retests only the flagged check(s) → Resubmit → Approve → Completed
+  → Reports & AI-assisted insight → Audit trail
 ```
 
 Built on **TanStack Start** (TanStack Router + React 19 + Vite), **Tailwind CSS 4** and
-**shadcn/ui**, originally scaffolded in [Lovable](https://lovable.dev).
+**shadcn/ui**, originally scaffolded in [Lovable](https://lovable.dev) as a test-management
+tool and evolved in place into this product on the same architecture.
 
 ## What's implemented
 
-- **Authentication** — Employee ID + password, six-digit OTP, session persisted client-side.
-- **Role-based access** — Tester, Reviewer, Manager, Administrator, enforced through a
-  centralized permission module (`src/lib/tms/permissions.ts`), not just hidden buttons.
-- **Tester workspace** — step-by-step execution with a step navigator, Pass/Fail/Blocked/Skipped
-  outcomes, conditional actual-result/comment/evidence fields, drag-free file attach with
-  preview, real autosave (2s debounce, save-state indicator, survives a refresh), and a
-  submission summary with validation.
-- **Reviewer workspace** — inspect every step, result and piece of evidence, approve or send
-  back with a required comment.
-- **Revision loop** — sending an execution back updates every screen (dashboard, My Tests,
-  the execution itself, notifications, audit trail) from one canonical `ExecutionStatus` value;
-  nothing is tracked as a separate per-page status string.
-- **Manager dashboard & Reports** — pass/fail/blocked metrics, module quality, tester
-  productivity and review backlog, all derived live from execution records (Recharts).
-- **Administration** — manage users (role, active/inactive), projects, test cases (with steps)
-  and assignments, each action going through the same domain services as the rest of the app
-  and producing an audit event.
-- **Notifications & audit trail** — every meaningful transition (assign, start, submit, review,
-  revision, approve, block) creates a notification and an audit record; a shared timeline
-  component renders both.
-- **Global search** — `Ctrl/Cmd K` command palette over test cases, executions and testers.
-- **State consistency** — one `AppState` object (users, projects, test cases, executions, step
-  results, evidence, reviews, notifications, audit) is the single source of truth for every
-  screen; no component maintains its own copy of workflow state.
+- **Authentication + a real location/station gate** — Employee ID + password, six-digit OTP,
+  then (for testers only) a plant/location and station verification step. This is a genuine
+  navigation guard enforced in `AppShell` for every protected route — a tester cannot reach a
+  worksheet by navigating straight to its URL without verifying first.
+- **Role-based access** — Tester, Quality Checker, Manager, Senior Manager, Template Manager
+  and Administrator, enforced through a centralized permission module
+  (`src/lib/tms/permissions.ts`), not just hidden buttons.
+- **Versioned, immutable templates** — a Template Manager authors Categories and Checks on a
+  draft revision (check builder with reorder, mandatory/allow-N/A/evidence-required/measurement
+  range config), validates and publishes it. Once published, a revision's checks are never
+  mutated again; "Create new revision" clones into a fresh draft, and a revision diff shows
+  exactly which checks were added, removed or modified.
+- **Digital Quality Worksheet** — category-grouped check list with search/filter, autosave
+  (2s debounce, save-state indicator), Pass/Fail/N/A controls, auto-graded measurement checks
+  (value compared against the check's acceptance range), a failure-capture panel (category,
+  severity, description) that surfaces an AI-assisted "similar past failures" recommendation,
+  a real camera-capable evidence uploader, and submission validation that blocks and lists the
+  exact missing check codes with jump-to links.
+- **Check-level retest, never overwriting history** — a `CheckResult` is one row per
+  `(execution, check, attempt)`; a request-retest decision creates a brand-new attempt row only
+  for the checks the Quality Checker flags, so "Attempt 1 Failed 14:22 → Attempt 2 Passed
+  15:11" is a real, permanent record. During a retest round the worksheet only allows editing
+  the flagged check(s) — everything else is locked read-only.
+- **Quality Checker review** — inspect every check's result, evidence and retest history,
+  filter the queue to failures only, then Approve, Reject or Request Retest (with a required
+  comment and a multi-select of exactly which checks need re-testing).
+- **Reports & AI-assisted insight** — First Pass Yield, failure rate, retest rate, failure
+  category hotspots (click to see the flagged checks), station performance and a pass/fail
+  trend, plus a CSV export. "AI-assisted" surfaces are a deterministic, local, disclosed
+  analysis — never authoritative — appearing on the worksheet and the review screen labeled
+  "requires Quality validation." There is no LLM call; see **Honesty notes** below.
+- **Administration** — users (role, active/inactive), plants/locations/stations (with status),
+  devices, failure categories, unit registration and assignment — every action goes through the
+  same domain services as the rest of the app and produces an audit event.
+- **Notifications & audit trail** — every meaningful transition (assign, verify, start, submit,
+  review, retest, approve, publish) creates a notification and an audit record; a shared
+  timeline component renders both.
+- **Global search** — `Ctrl/Cmd K` command palette over units, executions, checks and
+  navigation.
+- **State consistency** — one `AppState` object (users, plants/stations/devices, templates,
+  units, assignments, executions, check results, evidence, reviews, notifications, audit) is
+  the single source of truth for every screen; no component maintains its own copy of workflow
+  state.
 
 ## Architecture
 
@@ -55,29 +79,60 @@ for an HTTP API/database means changing that one module, not the services or the
 The canonical execution state machine lives in `src/types/domain.ts`:
 
 ```
-ASSIGNED → IN_PROGRESS → SUBMITTED → UNDER_REVIEW → APPROVED → COMPLETED
-                                           ↓
-                                       SENT_BACK → IN_PROGRESS
+ASSIGNED → IN_PROGRESS → PENDING_REVIEW → APPROVED → COMPLETED
+                              ↓        ↑
+                         RETEST_REQUIRED → RETEST_IN_PROGRESS
+                              ↓
+                          REJECTED
 ```
 
 Display labels are role-aware (`statusLabel(status, role)`) but always derive from this one
-enum — e.g. `SENT_BACK` reads "Revision Required" to a tester and "Revision Requested" to a
-reviewer, never a separately-tracked string.
+enum — e.g. `PENDING_REVIEW` reads "Awaiting Quality Review" to a tester and "Pending
+Verification" to a Quality Checker, never a separately-tracked string. A `CheckResult` is
+similarly the one source of truth per check attempt, keyed by `(executionId, templateCheckId,
+attempt)` — the "current" result is simply the row with the highest attempt number, and prior
+attempts are never edited or deleted.
 
 ## Demo credentials
 
-| Employee ID | Name         | Role          |
-| ----------- | ------------ | ------------- |
-| `TE-1001`   | Priya Sharma | Tester        |
-| `TE-2001`   | Rajesh Kumar | Reviewer      |
-| `TE-3001`   | Anita Desai  | Manager       |
-| `TE-9001`   | Admin User   | Administrator |
+| Employee ID | Name          | Role             |
+| ----------- | ------------- | ---------------- |
+| `TE-1001`   | Priya Sharma  | Tester           |
+| `TE-2001`   | Rajesh Kumar  | Quality Checker  |
+| `TE-3001`   | Anita Desai   | Manager          |
+| `TE-4001`   | Arjun Nair    | Senior Manager   |
+| `TE-5001`   | Kavya Menon   | Template Manager |
+| `TE-9001`   | Admin User    | Administrator    |
 
-**Password:** `tata@2026` · **OTP:** `123456` (also shown on the sign-in screen)
+**Password:** `pibythree@2026` · **OTP:** `123456` (also shown on the sign-in screen)
 
-Seeded data gives every role something to look at immediately: an assigned test, an
-in-progress test, a submission pending review, and a test sent back for revision — the same
-scenario the E2E test drives end to end.
+Seeded data gives every role something to look at immediately: a published template revision
+with 17 checks across 7 categories, an assigned unit, an in-progress unit, a unit awaiting a
+retest with a real two-attempt history on one check, a unit pending Quality review, one
+completed, and one rejected — the same scenario the E2E test drives end to end.
+
+## Honesty notes (what's real vs. simplified, and why)
+
+This ships as a static SPA with no backend, so a few spec-described behaviors are implemented
+as **real but locally-scoped** rather than faked:
+
+- **"Sync"** — there is no backend to sync to; state already saves instantly to `localStorage`
+  (that is the offline-first save). The online/offline indicator reflects real
+  `navigator.onLine`/`online`/`offline` events, and the copy says "Saved to this device" rather
+  than implying cloud sync.
+- **AI-assisted insight** — no LLM call (there's no safe place to hold an API key in a static
+  site). It's a deterministic client-side analysis over local execution data (failure frequency
+  by category, keyword-overlap "similar failure" lookup), always labeled "AI-assisted
+  recommendation — requires Quality validation." It never approves, rejects or overrides a
+  result.
+- **Camera capture** — a real `<input type="file" capture="environment">`, which genuinely
+  opens the device camera on phones/tablets; not simulated.
+- **Location verification** — selecting from a configured list of plants/locations/stations,
+  not real GPS. The *gate* itself is real: a session field plus a route guard enforced in the
+  domain service layer (`canAccessWorksheet`), not just a hidden UI element.
+- **Device "last seen"** — a manually-settable field, not live telemetry.
+- **Export** — client-side CSV generation (Blob + download), not PDF rendering.
+- **Check reordering** — up/down move buttons, not drag-and-drop.
 
 ## Local development
 
@@ -100,7 +155,7 @@ bun run preview
 bun run lint        # eslint
 bun run typecheck   # tsc --noEmit
 bun run test        # vitest — domain/service/permission unit tests
-bun run e2e         # playwright — full tester → reviewer → revision → approval workflow
+bun run e2e         # playwright — full tester → quality-checker → retest → approval workflow
 ```
 
 `bun run e2e` starts its own dev server; run `bunx playwright install --with-deps chromium`
@@ -140,14 +195,15 @@ unit tests → Playwright install → E2E tests → `build:gh-pages` → deploy 
 ## Known limitations
 
 - **Persistence is browser-local.** State lives in `localStorage` under one key
-  (`te-tms-state-v3`); it is per-browser, not shared across devices or reviewers in real time.
-  The service/repository split (`src/lib/tms/services.ts` vs `src/lib/tms/store.tsx`) is
-  intentionally structured so this can be swapped for a real API without touching the UI.
+  (`pibythree-quality-hub-v1`); it is per-browser, not shared across devices or reviewers in
+  real time. The service/repository split (`src/lib/tms/services.ts` vs `src/lib/tms/store.tsx`)
+  is intentionally structured so this can be swapped for a real API without touching the UI.
 - **Evidence files are stored as data URLs** in that same state, capped at 5 MB per file — fine
-  for a demo, not for production volumes of screenshots.
+  for a demo, not for production volumes of photos.
 - **Deep links on GitHub Pages** briefly render the login page's server-rendered markup before
   the client router corrects the URL and re-renders the right screen (the standard SPA fallback
   trade-off — see above). This can log a harmless one-time React hydration-mismatch warning in
   the browser console; it self-heals immediately and the resulting page is fully correct and
   interactive.
 - **OTP and password are fixed demo values**, not real MFA/credential verification.
+- See **Honesty notes** above for the AI insight, camera, location and export simplifications.

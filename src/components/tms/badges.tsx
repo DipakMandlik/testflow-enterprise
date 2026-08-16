@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 import {
+  CHECK_STATUS_LABELS,
   ExecutionStatus,
-  STEP_STATUS_LABELS,
   statusLabel,
+  type CheckStatus,
   type Priority,
   type Role,
-  type StepStatus,
 } from "@/types/domain";
 
 const base =
@@ -14,11 +14,11 @@ const base =
 const EXECUTION_TONE: Record<ExecutionStatus, string> = {
   [ExecutionStatus.ASSIGNED]: "border-border bg-muted text-muted-foreground",
   [ExecutionStatus.IN_PROGRESS]: "border-info/40 bg-info/15 text-info",
-  [ExecutionStatus.SUBMITTED]: "border-primary/40 bg-primary/15 text-primary",
-  [ExecutionStatus.UNDER_REVIEW]: "border-primary/40 bg-primary/15 text-primary",
-  [ExecutionStatus.SENT_BACK]: "border-warning/40 bg-warning/15 text-warning",
+  [ExecutionStatus.PENDING_REVIEW]: "border-primary/40 bg-primary/15 text-primary",
+  [ExecutionStatus.RETEST_REQUIRED]: "border-warning/40 bg-warning/15 text-warning",
+  [ExecutionStatus.RETEST_IN_PROGRESS]: "border-warning/40 bg-warning/15 text-warning",
   [ExecutionStatus.APPROVED]: "border-success/40 bg-success/15 text-success",
-  [ExecutionStatus.BLOCKED]: "border-destructive/40 bg-destructive/15 text-destructive",
+  [ExecutionStatus.REJECTED]: "border-destructive/40 bg-destructive/15 text-destructive",
   [ExecutionStatus.COMPLETED]: "border-success/40 bg-success/15 text-success",
 };
 
@@ -39,18 +39,27 @@ export function StatusBadge({
   );
 }
 
-const STEP_TONE: Record<StepStatus, string> = {
+const CHECK_TONE: Record<CheckStatus, string> = {
   not_started: "border-border bg-muted text-muted-foreground",
   in_progress: "border-info/40 bg-info/15 text-info",
   passed: "border-success/40 bg-success/15 text-success",
   failed: "border-destructive/40 bg-destructive/15 text-destructive",
-  blocked: "border-warning/40 bg-warning/15 text-warning",
-  skipped: "border-border bg-muted text-muted-foreground",
+  na: "border-border bg-muted text-muted-foreground",
+  retest_required: "border-warning/40 bg-warning/15 text-warning",
+  retest_in_progress: "border-warning/40 bg-warning/15 text-warning",
+  retest_passed: "border-success/40 bg-success/15 text-success",
+  retest_failed: "border-destructive/40 bg-destructive/15 text-destructive",
 };
 
-export function StepStatusBadge({ status, className }: { status: StepStatus; className?: string }) {
+export function CheckStatusBadge({
+  status,
+  className,
+}: {
+  status: CheckStatus;
+  className?: string;
+}) {
   return (
-    <span className={cn(base, STEP_TONE[status], className)}>{STEP_STATUS_LABELS[status]}</span>
+    <span className={cn(base, CHECK_TONE[status], className)}>{CHECK_STATUS_LABELS[status]}</span>
   );
 }
 
