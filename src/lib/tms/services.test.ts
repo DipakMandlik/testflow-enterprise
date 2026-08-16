@@ -224,18 +224,18 @@ describe("tester execution workflow", () => {
     // whenever the patch omitted `status`, silently reverting Pass/Fail back
     // to "in progress" on every autosave keystroke.
     const { state, user } = verifiedTester("TE-1001");
-    const passed = saveCheckResult(state, user, "exec-1", "chk-chk-002", {
+    const passed = saveCheckResult(state, user, "exec-1", "chk-shp-001", {
       status: "passed",
-      actualResult: "USN label matches.",
+      actualResult: "Shipping settings match the assignment record.",
     });
     expect(passed.ok).toBe(true);
     if (!passed.ok) return;
-    const noteOnly = saveCheckResult(passed.value, user, "exec-1", "chk-chk-002", {
+    const noteOnly = saveCheckResult(passed.value, user, "exec-1", "chk-shp-001", {
       testerNotes: "Double-checked against the assignment record.",
     });
     expect(noteOnly.ok).toBe(true);
     if (!noteOnly.ok) return;
-    const result = currentCheckResult(noteOnly.value, "exec-1", "chk-chk-002");
+    const result = currentCheckResult(noteOnly.value, "exec-1", "chk-shp-001");
     expect(result?.status).toBe("passed");
     expect(result?.testerNotes).toBe("Double-checked against the assignment record.");
   });
@@ -395,7 +395,7 @@ describe("check-level retest: attempt history is never overwritten", () => {
       reviewerState,
       rajesh.user,
       "exec-4",
-      "Flash exposure looks marginal — please re-run in the darkened booth.",
+      "Ingress result looks marginal — please re-run the environmental seal check.",
       ["chk-cam-004"],
     );
     expect(retested.ok).toBe(true);
@@ -425,7 +425,7 @@ describe("check-level retest: attempt history is never overwritten", () => {
 
     const fixed = saveCheckResult(state, priya.user, "exec-4", "chk-cam-004", {
       status: "passed",
-      actualResult: "Correct exposure on re-run with flash calibrated.",
+      actualResult: "No moisture ingress observed on re-run with the seal reworked.",
     });
     expect(fixed.ok).toBe(true);
     if (!fixed.ok) return;

@@ -295,15 +295,23 @@ export function executionProgress(state: AppState, execution: Execution) {
     const r = resultByCheck.get(c.id);
     return !r || !RESOLVED_CHECK_STATUSES.includes(r.status);
   });
+  // A template can carry many supplementary, non-mandatory checks alongside
+  // the small set that actually gates submission (see the OJAS-EQT seed:
+  // 113 checks, 17 mandatory). "Progress" means progress toward that gate,
+  // not a count diluted by checks nobody is required to touch.
+  const mandatoryChecks = checks.filter((c) => c.mandatory);
+  const mandatoryDone = done.filter((c) => c.mandatory);
   return {
-    total: checks.length,
-    completed: done.length,
+    total: mandatoryChecks.length,
+    completed: mandatoryDone.length,
     passed: passed.length,
     failed: failed.length,
     na: na.length,
     retestPending: retestPending.length,
     mandatoryRemaining,
-    percent: checks.length ? Math.round((done.length / checks.length) * 100) : 0,
+    percent: mandatoryChecks.length
+      ? Math.round((mandatoryDone.length / mandatoryChecks.length) * 100)
+      : 0,
   };
 }
 

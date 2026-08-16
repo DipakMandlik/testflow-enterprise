@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Logo } from "@/components/tms/Logo";
 import { useTms } from "@/lib/tms/store";
 import { currentUser, locationsForPlant, verifyLocation } from "@/lib/tms/services";
 
@@ -51,58 +52,62 @@ function VerifyLocationPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-5">
+    <div className="auth-scene flex min-h-screen items-center justify-center px-5 py-12">
       <div className="w-full max-w-sm">
-        <div className="mx-auto grid size-11 place-items-center rounded-sm border border-border bg-surface">
-          <MapPin className="size-5 text-primary" aria-hidden />
-        </div>
-        <h1 className="mt-4 text-center text-xl font-semibold">Verify your location</h1>
-        <p className="mt-1 text-center text-sm text-muted-foreground">
-          Confirm the plant and location you're testing from before opening any assignment.
-        </p>
+        <div className="rounded-xl border border-border bg-card p-8 shadow-xl">
+          <Logo size={40} className="mx-auto" />
+          <div className="mx-auto mt-4 grid size-11 place-items-center rounded-sm border border-border bg-surface">
+            <MapPin className="size-5 text-primary" aria-hidden />
+          </div>
+          <h1 className="mt-4 text-center text-xl font-semibold">Verify your location</h1>
+          <p className="mt-1 text-center text-sm text-muted-foreground">
+            Confirm the plant and location you're testing from before opening any assignment.
+          </p>
 
-        <div className="mt-7 space-y-4">
-          <div className="space-y-1.5">
-            <Label>Plant</Label>
-            <Select
-              value={plantId}
-              onValueChange={(v) => {
-                setPlantId(v);
-                setLocationId("");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {state.plants.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mt-7 space-y-4">
+            <div className="space-y-1.5">
+              <Label>Plant</Label>
+              <Select
+                value={plantId}
+                onValueChange={(v) => {
+                  setPlantId(v);
+                  setLocationId("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {state.plants.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Location</Label>
+              <Select value={locationId} onValueChange={setLocationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" disabled={!locationId || submitting} onClick={onVerify}>
+              {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              Verify location
+            </Button>
           </div>
-          <div className="space-y-1.5">
-            <Label>Location</Label>
-            <Select value={locationId} onValueChange={setLocationId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a location" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {l.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button className="w-full" disabled={!locationId || submitting} onClick={onVerify}>
-            {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            Verify location
-          </Button>
         </div>
+        <p className="mt-5 text-center text-xs text-white/60">Powered by Pibythree</p>
       </div>
     </div>
   );

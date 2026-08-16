@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Logo } from "@/components/tms/Logo";
 import { useTms } from "@/lib/tms/store";
 import {
   currentUser,
@@ -63,45 +64,51 @@ function VerifyStationPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-5">
+    <div className="auth-scene flex min-h-screen items-center justify-center px-5 py-12">
       <div className="w-full max-w-sm">
-        <div className="mx-auto grid size-11 place-items-center rounded-sm border border-border bg-surface">
-          <Radio className="size-5 text-primary" aria-hidden />
-        </div>
-        <h1 className="mt-4 text-center text-xl font-semibold">Verify your station</h1>
-        <p className="mt-1 text-center text-sm text-muted-foreground">
-          Select the test station you're working from at {location?.name ?? "this location"}.
-        </p>
-
-        <div className="mt-5 flex items-center justify-center gap-2 rounded-sm border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
-          <CheckCircle2 className="size-3.5" />
-          Plant: {plant?.name} — Verified
-        </div>
-
-        <div className="mt-5 space-y-4">
-          <div className="space-y-1.5">
-            <Label>Station</Label>
-            <Select value={stationId} onValueChange={setStationId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a station" />
-              </SelectTrigger>
-              <SelectContent>
-                {stations.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.code} — {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!stations.length && (
-              <p className="text-xs text-muted-foreground">No active stations at this location.</p>
-            )}
+        <div className="rounded-xl border border-border bg-card p-8 shadow-xl">
+          <Logo size={40} className="mx-auto" />
+          <div className="mx-auto mt-4 grid size-11 place-items-center rounded-sm border border-border bg-surface">
+            <Radio className="size-5 text-primary" aria-hidden />
           </div>
-          <Button className="w-full" disabled={!stationId || submitting} onClick={onVerify}>
-            {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            Verify station
-          </Button>
+          <h1 className="mt-4 text-center text-xl font-semibold">Verify your station</h1>
+          <p className="mt-1 text-center text-sm text-muted-foreground">
+            Select the test station you're working from at {location?.name ?? "this location"}.
+          </p>
+
+          <div className="mt-5 flex items-center justify-center gap-2 rounded-sm border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
+            <CheckCircle2 className="size-3.5" />
+            Plant: {plant?.name} — Verified
+          </div>
+
+          <div className="mt-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label>Station</Label>
+              <Select value={stationId} onValueChange={setStationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a station" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stations.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.code} — {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!stations.length && (
+                <p className="text-xs text-muted-foreground">
+                  No active stations at this location.
+                </p>
+              )}
+            </div>
+            <Button className="w-full" disabled={!stationId || submitting} onClick={onVerify}>
+              {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              Verify station
+            </Button>
+          </div>
         </div>
+        <p className="mt-5 text-center text-xs text-white/60">Powered by Pibythree</p>
       </div>
     </div>
   );

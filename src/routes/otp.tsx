@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { KeyRound, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Logo } from "@/components/tms/Logo";
 import { useTms } from "@/lib/tms/store";
 import { canAccessWorksheet, currentUser, userById, verifyOtp } from "@/lib/tms/services";
 
@@ -61,63 +62,67 @@ function OtpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-5">
-      <div className="w-full max-w-sm text-center">
-        <div className="mx-auto grid size-11 place-items-center rounded-sm border border-border bg-surface">
-          <KeyRound className="size-5 text-primary" aria-hidden />
-        </div>
-        <h1 className="mt-4 text-xl font-semibold">Two-step verification</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Enter the six-digit code sent to the device registered to{" "}
-          <span className="mono-id">{pending?.employeeId ?? "your account"}</span>.
-        </p>
-
-        <form
-          className="mt-7 flex flex-col items-center gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit(code);
-          }}
-        >
-          <InputOTP
-            maxLength={6}
-            value={code}
-            onChange={(value) => {
-              setCode(value);
-              if (value.length === 6) void submit(value);
-            }}
-            autoFocus
-            aria-label="Verification code"
-          >
-            <InputOTPGroup>
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <InputOTPSlot key={i} index={i} />
-              ))}
-            </InputOTPGroup>
-          </InputOTP>
-
-          <p className="text-xs text-muted-foreground" role="status">
-            {secondsLeft > 0
-              ? `Code expires in ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`
-              : "Code expired."}
+    <div className="auth-scene flex min-h-screen items-center justify-center px-5 py-12">
+      <div className="w-full max-w-sm">
+        <div className="rounded-xl border border-border bg-card p-8 text-center shadow-xl">
+          <Logo size={40} className="mx-auto" />
+          <div className="mx-auto mt-4 grid size-11 place-items-center rounded-sm border border-border bg-surface">
+            <KeyRound className="size-5 text-primary" aria-hidden />
+          </div>
+          <h1 className="mt-4 text-xl font-semibold">Two-step verification</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Enter the six-digit code sent to the device registered to{" "}
+            <span className="mono-id">{pending?.employeeId ?? "your account"}</span>.
           </p>
 
-          <Button type="submit" className="w-full" disabled={code.length !== 6 || verifying}>
-            {verifying ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            Verify and continue
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSecondsLeft(120);
-              setCode("");
+          <form
+            className="mt-7 flex flex-col items-center gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit(code);
             }}
           >
-            Resend code
-          </Button>
-        </form>
+            <InputOTP
+              maxLength={6}
+              value={code}
+              onChange={(value) => {
+                setCode(value);
+                if (value.length === 6) void submit(value);
+              }}
+              autoFocus
+              aria-label="Verification code"
+            >
+              <InputOTPGroup>
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <InputOTPSlot key={i} index={i} />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+
+            <p className="text-xs text-muted-foreground" role="status">
+              {secondsLeft > 0
+                ? `Code expires in ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`
+                : "Code expired."}
+            </p>
+
+            <Button type="submit" className="w-full" disabled={code.length !== 6 || verifying}>
+              {verifying ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              Verify and continue
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSecondsLeft(120);
+                setCode("");
+              }}
+            >
+              Resend code
+            </Button>
+          </form>
+        </div>
+        <p className="mt-5 text-center text-xs text-white/60">Powered by Pibythree</p>
       </div>
     </div>
   );
