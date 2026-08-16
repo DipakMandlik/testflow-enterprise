@@ -28,8 +28,8 @@ export function StatusBadge({
   className,
 }: {
   status: ExecutionStatus;
-  role?: Role;
-  className?: string;
+  role?: Role | undefined;
+  className?: string | undefined;
 }) {
   return (
     <span className={cn(base, EXECUTION_TONE[status], className)} data-status={status}>
