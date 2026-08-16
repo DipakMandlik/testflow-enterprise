@@ -18,9 +18,15 @@ export const Route = createFileRoute("/tests/$testCaseId")({
   head: () => ({
     meta: [
       { title: "Test Case — Tata Electronics TMS" },
-      { name: "description", content: "Test case definition, steps, history and previous executions." },
+      {
+        name: "description",
+        content: "Test case definition, steps, history and previous executions.",
+      },
       { property: "og:title", content: "Test Case — Tata Electronics TMS" },
-      { property: "og:description", content: "Full definition and execution history for a test case." },
+      {
+        property: "og:description",
+        content: "Full definition and execution history for a test case.",
+      },
     ],
   }),
   component: TestCasePage,

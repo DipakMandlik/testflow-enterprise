@@ -15,7 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTms } from "@/lib/tms/store";
-import { currentUser, executionProgress, moduleById, projectById, testCaseById } from "@/lib/tms/services";
+import {
+  currentUser,
+  executionProgress,
+  moduleById,
+  projectById,
+  testCaseById,
+} from "@/lib/tms/services";
 import { ExecutionStatus } from "@/types/domain";
 
 export const Route = createFileRoute("/my-tests")({
@@ -27,7 +33,10 @@ export const Route = createFileRoute("/my-tests")({
         content: "Filter, sort and act on every test assigned to you across active programmes.",
       },
       { property: "og:title", content: "My Tests — Tata Electronics TMS" },
-      { property: "og:description", content: "Your assigned validation work with contextual actions." },
+      {
+        property: "og:description",
+        content: "Your assigned validation work with contextual actions.",
+      },
     ],
   }),
   component: MyTestsPage,
@@ -158,7 +167,9 @@ function MyTestsPage() {
                       <p className="max-w-sm truncate">{testCase.title}</p>
                       <div className="mt-1 flex items-center gap-2">
                         <PriorityBadge priority={testCase.priority} />
-                        <span className="mono-id text-xs text-muted-foreground">{execution.code}</span>
+                        <span className="mono-id text-xs text-muted-foreground">
+                          {execution.code}
+                        </span>
                       </div>
                     </td>
                     <td className="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
@@ -177,7 +188,11 @@ function MyTestsPage() {
                       {format(new Date(execution.updatedAt), "dd MMM, HH:mm")}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      <Button asChild size="sm" variant={ACTION_BY_STATUS[execution.status] ? "default" : "outline"}>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant={ACTION_BY_STATUS[execution.status] ? "default" : "outline"}
+                      >
                         <Link to="/executions/$executionId" params={{ executionId: execution.id }}>
                           {ACTION_BY_STATUS[execution.status] ?? "View"}
                         </Link>

@@ -165,7 +165,11 @@ function ExecutionPage() {
         <>
           <StatusBadge status={execution.status} role={user.role} />
           {execution.status === ExecutionStatus.ASSIGNED && editable && (
-            <Button onClick={() => run((s) => startExecution(s, user, execution.id), { success: "Execution started." })}>
+            <Button
+              onClick={() =>
+                run((s) => startExecution(s, user, execution.id), { success: "Execution started." })
+              }
+            >
               Start execution
             </Button>
           )}
@@ -220,7 +224,9 @@ function ExecutionPage() {
                 <Textarea
                   placeholder="Execution summary for the reviewer"
                   defaultValue={execution.summary}
-                  onBlur={(e) => run((s) => saveExecutionSummary(s, user, execution.id, e.target.value))}
+                  onBlur={(e) =>
+                    run((s) => saveExecutionSummary(s, user, execution.id, e.target.value))
+                  }
                 />
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setSubmitOpen(false)}>
@@ -367,7 +373,8 @@ function ExecutionPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <p className="label-caps">
-                    Evidence {step.evidenceRequired && <span className="text-warning">· required</span>}
+                    Evidence{" "}
+                    {step.evidenceRequired && <span className="text-warning">· required</span>}
                   </p>
                   {editable && (
                     <Button size="sm" variant="outline" onClick={() => fileInput.current?.click()}>
@@ -395,7 +402,11 @@ function ExecutionPage() {
                         className="flex items-center gap-3 rounded-sm border border-border px-2.5 py-2"
                       >
                         {ev.mimeType.startsWith("image/") && (
-                          <img src={ev.dataUrl} alt={ev.filename} className="h-9 w-14 rounded-sm object-cover" />
+                          <img
+                            src={ev.dataUrl}
+                            alt={ev.filename}
+                            className="h-9 w-14 rounded-sm object-cover"
+                          />
                         )}
                         <span className="min-w-0 flex-1 truncate text-sm">{ev.filename}</span>
                         <span className="text-xs text-muted-foreground tabular-nums">
@@ -414,7 +425,9 @@ function ExecutionPage() {
                       </li>
                     ))}
                   {!evidence.some((ev) => ev.stepId === step.id) && (
-                    <li className="text-xs text-muted-foreground">No evidence attached to this step.</li>
+                    <li className="text-xs text-muted-foreground">
+                      No evidence attached to this step.
+                    </li>
                   )}
                 </ul>
               </div>
@@ -444,7 +457,8 @@ function ExecutionPage() {
                     size="sm"
                     disabled={activeIndex >= steps.length - 1}
                     onClick={() => {
-                      if (editable) run((s) => saveStepResult(s, user, execution.id, step.id, draft));
+                      if (editable)
+                        run((s) => saveStepResult(s, user, execution.id, step.id, draft));
                       setActiveIndex((i) => Math.min(steps.length - 1, i + 1));
                     }}
                   >

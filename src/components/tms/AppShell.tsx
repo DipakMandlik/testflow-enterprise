@@ -34,7 +34,13 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/lib/tms/services";
-import { canManageUsers, canViewReports, canViewReview } from "@/lib/tms/permissions";
+import {
+  canManageAssignments,
+  canManageTestCases,
+  canManageUsers,
+  canViewReports,
+  canViewReview,
+} from "@/lib/tms/permissions";
 import { ROLE_LABELS, type User } from "@/types/domain";
 
 interface NavItem {
@@ -49,7 +55,12 @@ const NAV: NavItem[] = [
   { to: "/my-tests", label: "My Tests", icon: ClipboardList, show: (u) => u.role === "tester" },
   { to: "/reviews", label: "Review Queue", icon: ClipboardCheck, show: (u) => canViewReview(u) },
   { to: "/reports", label: "Reports", icon: BarChart3, show: (u) => canViewReports(u) },
-  { to: "/admin", label: "Administration", icon: Settings2, show: (u) => canManageUsers(u) },
+  {
+    to: "/admin",
+    label: "Administration",
+    icon: Settings2,
+    show: (u) => canManageUsers(u) || canManageTestCases(u) || canManageAssignments(u),
+  },
 ];
 
 function NavLinks({ user, onNavigate }: { user: User; onNavigate?: () => void }) {
@@ -90,7 +101,12 @@ function NotificationCenter({ userId }: { userId: string }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label={`Notifications (${unread} unread)`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={`Notifications (${unread} unread)`}
+        >
           <Bell className="size-4" />
           {unread > 0 && (
             <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
@@ -197,7 +213,12 @@ export function AppShell({
             <NavLinks user={user} />
           </div>
           <div className="border-t border-sidebar-border p-3">
-            <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs" onClick={resetDemoData}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-xs"
+              onClick={resetDemoData}
+            >
               <RotateCcw className="size-3.5" /> Reset demo data
             </Button>
           </div>
@@ -208,7 +229,12 @@ export function AppShell({
             <div className="flex items-center gap-2 px-4 py-2.5">
               <Sheet open={mobileNav} onOpenChange={setMobileNav}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden"
+                    aria-label="Open navigation"
+                  >
                     <Menu className="size-4" />
                   </Button>
                 </SheetTrigger>
