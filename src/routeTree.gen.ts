@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as MyTestsRouteImport } from './routes/my-tests'
 import { Route as OtpRouteImport } from './routes/otp'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyTestsRoute = MyTestsRouteImport.update({
+  id: '/my-tests',
+  path: '/my-tests',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OtpRoute = OtpRouteImport.update({
   id: '/otp',
   path: '/otp',
@@ -32,30 +38,34 @@ const OtpRoute = OtpRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/otp'
+  fullPaths: '/' | '/dashboard' | '/my-tests' | '/otp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/otp'
-  id: '__root__' | '/' | '/dashboard' | '/otp'
+  to: '/' | '/dashboard' | '/my-tests' | '/otp'
+  id: '__root__' | '/' | '/dashboard' | '/my-tests' | '/otp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  MyTestsRoute: typeof MyTestsRoute
   OtpRoute: typeof OtpRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-tests': {
+      id: '/my-tests'
+      path: '/my-tests'
+      fullPath: '/my-tests'
+      preLoaderRoute: typeof MyTestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/otp': {
       id: '/otp'
       path: '/otp'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  MyTestsRoute: MyTestsRoute,
   OtpRoute: OtpRoute,
 }
 export const routeTree = rootRouteImport
