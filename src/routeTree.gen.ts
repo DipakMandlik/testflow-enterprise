@@ -10,33 +10,154 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as MyTestsRouteImport } from './routes/my-tests'
+import { Route as OtpRouteImport } from './routes/otp'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions.$executionId'
+import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
+import { Route as ReviewsExecutionIdRouteImport } from './routes/reviews.$executionId'
+import { Route as TestsTestCaseIdRouteImport } from './routes/tests.$testCaseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyTestsRoute = MyTestsRouteImport.update({
+  id: '/my-tests',
+  path: '/my-tests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OtpRoute = OtpRouteImport.update({
+  id: '/otp',
+  path: '/otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutionsExecutionIdRoute = ExecutionsExecutionIdRouteImport.update({
+  id: '/executions/$executionId',
+  path: '/executions/$executionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
+  id: '/reviews/',
+  path: '/reviews/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsExecutionIdRoute = ReviewsExecutionIdRouteImport.update({
+  id: '/reviews/$executionId',
+  path: '/reviews/$executionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TestsTestCaseIdRoute = TestsTestCaseIdRouteImport.update({
+  id: '/tests/$testCaseId',
+  path: '/tests/$testCaseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/my-tests': typeof MyTestsRoute
+  '/otp': typeof OtpRoute
+  '/reports': typeof ReportsRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
+  '/reviews/$executionId': typeof ReviewsExecutionIdRoute
+  '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/reviews/': typeof ReviewsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/my-tests': typeof MyTestsRoute
+  '/otp': typeof OtpRoute
+  '/reports': typeof ReportsRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
+  '/reviews/$executionId': typeof ReviewsExecutionIdRoute
+  '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/reviews': typeof ReviewsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/my-tests': typeof MyTestsRoute
+  '/otp': typeof OtpRoute
+  '/reports': typeof ReportsRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
+  '/reviews/$executionId': typeof ReviewsExecutionIdRoute
+  '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/reviews/': typeof ReviewsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/my-tests'
+    | '/otp'
+    | '/reports'
+    | '/executions/$executionId'
+    | '/reviews/$executionId'
+    | '/tests/$testCaseId'
+    | '/reviews/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/my-tests'
+    | '/otp'
+    | '/reports'
+    | '/executions/$executionId'
+    | '/reviews/$executionId'
+    | '/tests/$testCaseId'
+    | '/reviews'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/my-tests'
+    | '/otp'
+    | '/reports'
+    | '/executions/$executionId'
+    | '/reviews/$executionId'
+    | '/tests/$testCaseId'
+    | '/reviews/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  DashboardRoute: typeof DashboardRoute
+  MyTestsRoute: typeof MyTestsRoute
+  OtpRoute: typeof OtpRoute
+  ReportsRoute: typeof ReportsRoute
+  ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
+  ReviewsExecutionIdRoute: typeof ReviewsExecutionIdRoute
+  TestsTestCaseIdRoute: typeof TestsTestCaseIdRoute
+  ReviewsIndexRoute: typeof ReviewsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +169,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-tests': {
+      id: '/my-tests'
+      path: '/my-tests'
+      fullPath: '/my-tests'
+      preLoaderRoute: typeof MyTestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/otp': {
+      id: '/otp'
+      path: '/otp'
+      fullPath: '/otp'
+      preLoaderRoute: typeof OtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executions/$executionId': {
+      id: '/executions/$executionId'
+      path: '/executions/$executionId'
+      fullPath: '/executions/$executionId'
+      preLoaderRoute: typeof ExecutionsExecutionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews/': {
+      id: '/reviews/'
+      path: '/reviews'
+      fullPath: '/reviews/'
+      preLoaderRoute: typeof ReviewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews/$executionId': {
+      id: '/reviews/$executionId'
+      path: '/reviews/$executionId'
+      fullPath: '/reviews/$executionId'
+      preLoaderRoute: typeof ReviewsExecutionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tests/$testCaseId': {
+      id: '/tests/$testCaseId'
+      path: '/tests/$testCaseId'
+      fullPath: '/tests/$testCaseId'
+      preLoaderRoute: typeof TestsTestCaseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  DashboardRoute: DashboardRoute,
+  MyTestsRoute: MyTestsRoute,
+  OtpRoute: OtpRoute,
+  ReportsRoute: ReportsRoute,
+  ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
+  ReviewsExecutionIdRoute: ReviewsExecutionIdRoute,
+  TestsTestCaseIdRoute: TestsTestCaseIdRoute,
+  ReviewsIndexRoute: ReviewsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
