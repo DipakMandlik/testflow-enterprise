@@ -14,6 +14,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MyTestsRouteImport } from './routes/my-tests'
 import { Route as OtpRouteImport } from './routes/otp'
 import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions.$executionId'
+import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
 import { Route as TestsTestCaseIdRouteImport } from './routes/tests.$testCaseId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const ExecutionsExecutionIdRoute = ExecutionsExecutionIdRouteImport.update({
   path: '/executions/$executionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
+  id: '/reviews/',
+  path: '/reviews/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TestsTestCaseIdRoute = TestsTestCaseIdRouteImport.update({
   id: '/tests/$testCaseId',
   path: '/tests/$testCaseId',
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/otp': typeof OtpRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/reviews/': typeof ReviewsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/otp': typeof OtpRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/reviews': typeof ReviewsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/otp': typeof OtpRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/tests/$testCaseId': typeof TestsTestCaseIdRoute
+  '/reviews/': typeof ReviewsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/executions/$executionId'
     | '/tests/$testCaseId'
+    | '/reviews/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/executions/$executionId'
     | '/tests/$testCaseId'
+    | '/reviews'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/executions/$executionId'
     | '/tests/$testCaseId'
+    | '/reviews/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   OtpRoute: typeof OtpRoute
   ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
   TestsTestCaseIdRoute: typeof TestsTestCaseIdRoute
+  ReviewsIndexRoute: typeof ReviewsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExecutionsExecutionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reviews/': {
+      id: '/reviews/'
+      path: '/reviews'
+      fullPath: '/reviews/'
+      preLoaderRoute: typeof ReviewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tests/$testCaseId': {
       id: '/tests/$testCaseId'
       path: '/tests/$testCaseId'
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   OtpRoute: OtpRoute,
   ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
   TestsTestCaseIdRoute: TestsTestCaseIdRoute,
+  ReviewsIndexRoute: ReviewsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
