@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MyTestsRouteImport } from './routes/my-tests'
 import { Route as OtpRouteImport } from './routes/otp'
+import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions.$executionId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const OtpRoute = OtpRouteImport.update({
   path: '/otp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExecutionsExecutionIdRoute = ExecutionsExecutionIdRouteImport.update({
+  id: '/executions/$executionId',
+  path: '/executions/$executionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,21 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/my-tests': typeof MyTestsRoute
   '/otp': typeof OtpRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/my-tests' | '/otp'
+  fullPaths:
+    '/' | '/dashboard' | '/my-tests' | '/otp' | '/executions/$executionId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/my-tests' | '/otp'
-  id: '__root__' | '/' | '/dashboard' | '/my-tests' | '/otp'
+  to: '/' | '/dashboard' | '/my-tests' | '/otp' | '/executions/$executionId'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/my-tests'
+    | '/otp'
+    | '/executions/$executionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +83,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   MyTestsRoute: typeof MyTestsRoute
   OtpRoute: typeof OtpRoute
+  ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OtpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/executions/$executionId': {
+      id: '/executions/$executionId'
+      path: '/executions/$executionId'
+      fullPath: '/executions/$executionId'
+      preLoaderRoute: typeof ExecutionsExecutionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +131,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   MyTestsRoute: MyTestsRoute,
   OtpRoute: OtpRoute,
+  ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
