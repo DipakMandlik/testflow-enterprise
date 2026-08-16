@@ -15,12 +15,7 @@ export enum ExecutionStatus {
 }
 
 export type StepStatus =
-  | "not_started"
-  | "in_progress"
-  | "passed"
-  | "failed"
-  | "blocked"
-  | "skipped";
+  "not_started" | "in_progress" | "passed" | "failed" | "blocked" | "skipped";
 
 export type Priority = "critical" | "high" | "medium" | "low";
 

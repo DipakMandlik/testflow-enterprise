@@ -28,7 +28,10 @@ export const Route = createFileRoute("/reviews/$executionId")({
   head: () => ({
     meta: [
       { title: "Review Execution — Tata Electronics TMS" },
-      { name: "description", content: "Inspect recorded results and evidence, then approve or request a revision." },
+      {
+        name: "description",
+        content: "Inspect recorded results and evidence, then approve or request a revision.",
+      },
       { property: "og:title", content: "Review Execution — Tata Electronics TMS" },
       { property: "og:description", content: "Reviewer workspace for submitted test executions." },
     ],
@@ -114,7 +117,11 @@ function ReviewPage() {
                       {stepEvidence.map((ev) => (
                         <li key={ev.id} className="rounded-sm border border-border p-1">
                           {ev.mimeType.startsWith("image/") ? (
-                            <img src={ev.dataUrl} alt={ev.filename} className="h-20 w-32 object-cover" />
+                            <img
+                              src={ev.dataUrl}
+                              alt={ev.filename}
+                              className="h-20 w-32 object-cover"
+                            />
                           ) : (
                             <span className="px-2 text-xs">{ev.filename}</span>
                           )}
@@ -148,7 +155,11 @@ function ReviewPage() {
               <Button
                 disabled={!decidable}
                 onClick={() => {
-                  if (run((s) => approveExecution(s, user, execution.id, comment), { success: "Execution approved." }))
+                  if (
+                    run((s) => approveExecution(s, user, execution.id, comment), {
+                      success: "Execution approved.",
+                    })
+                  )
                     void navigate({ to: "/reviews" });
                 }}
               >

@@ -13,9 +13,15 @@ export const Route = createFileRoute("/reviews/")({
   head: () => ({
     meta: [
       { title: "Review Queue — Tata Electronics TMS" },
-      { name: "description", content: "Submitted executions awaiting reviewer approval or revision." },
+      {
+        name: "description",
+        content: "Submitted executions awaiting reviewer approval or revision.",
+      },
       { property: "og:title", content: "Review Queue — Tata Electronics TMS" },
-      { property: "og:description", content: "Inspect submitted test executions and record decisions." },
+      {
+        property: "og:description",
+        content: "Inspect submitted test executions and record decisions.",
+      },
     ],
   }),
   component: ReviewQueuePage,
@@ -54,8 +60,8 @@ function ReviewQueuePage() {
                         <StatusBadge status={e.status} {...(user ? { role: user.role } : {})} />
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {userById(state, e.testerId)?.name} · {p.passed} passed / {p.failed} failed /{" "}
-                        {p.blocked} blocked · submitted{" "}
+                        {userById(state, e.testerId)?.name} · {p.passed} passed / {p.failed} failed
+                        / {p.blocked} blocked · submitted{" "}
                         {e.submittedAt ? format(new Date(e.submittedAt), "dd MMM HH:mm") : "—"}
                       </p>
                     </div>
@@ -95,7 +101,9 @@ function ReviewQueuePage() {
               </li>
             ))}
             {!recent.length && (
-              <li className="px-4 py-6 text-sm text-muted-foreground">No decisions recorded yet.</li>
+              <li className="px-4 py-6 text-sm text-muted-foreground">
+                No decisions recorded yet.
+              </li>
             )}
           </ul>
         </section>

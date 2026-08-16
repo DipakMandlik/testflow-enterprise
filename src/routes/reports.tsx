@@ -1,5 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { AppShell } from "@/components/tms/AppShell";
 import { useTms } from "@/lib/tms/store";
 import { ExecutionStatus, EXECUTION_STATUS_LABELS } from "@/types/domain";
@@ -8,7 +19,11 @@ export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
       { title: "Reports — Tata Electronics TMS" },
-      { name: "description", content: "Execution status, quality by module and tester productivity, derived from live data." },
+      {
+        name: "description",
+        content:
+          "Execution status, quality by module and tester productivity, derived from live data.",
+      },
       { property: "og:title", content: "Reports — Tata Electronics TMS" },
       { property: "og:description", content: "Testing health analytics across active programmes." },
     ],
@@ -16,7 +31,13 @@ export const Route = createFileRoute("/reports")({
   component: ReportsPage,
 });
 
-const TONES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+const TONES = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
 
 function ReportsPage() {
   const { state } = useTms();
@@ -48,21 +69,32 @@ function ReportsPage() {
     .filter((u) => u.role === "tester")
     .map((u) => ({
       name: u.name.split(" ")[0] ?? u.name,
-      completed: state.executions.filter((e) => e.testerId === u.id && e.status === ExecutionStatus.COMPLETED).length,
+      completed: state.executions.filter(
+        (e) => e.testerId === u.id && e.status === ExecutionStatus.COMPLETED,
+      ).length,
       active: state.executions.filter(
         (e) => e.testerId === u.id && e.status !== ExecutionStatus.COMPLETED,
       ).length,
     }));
 
   return (
-    <AppShell title="Reports" description="Every figure is computed from current execution records.">
+    <AppShell
+      title="Reports"
+      description="Every figure is computed from current execution records."
+    >
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="rounded-lg border border-border bg-surface p-4">
           <h2 className="text-sm font-semibold">Execution status distribution</h2>
           <div className="mt-3 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90}>
+                <Pie
+                  data={statusData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={50}
+                  outerRadius={90}
+                >
                   {statusData.map((_, i) => (
                     <Cell key={i} fill={TONES[i % TONES.length]} />
                   ))}
@@ -94,8 +126,19 @@ function ReportsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={moduleData} layout="vertical" margin={{ left: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} stroke="var(--muted-foreground)" fontSize={12} />
-                <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={12} width={110} />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  stroke="var(--muted-foreground)"
+                  fontSize={12}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  stroke="var(--muted-foreground)"
+                  fontSize={12}
+                  width={110}
+                />
                 <Tooltip cursor={{ fill: "var(--accent)" }} />
                 <Bar dataKey="passRate" fill="var(--chart-2)" radius={3} />
               </BarChart>

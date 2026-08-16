@@ -602,7 +602,11 @@ export function createSeedState(): AppState {
     stepResults: [
       ...results("exec-1", "tc-auth-001", {}),
       ...results("exec-2", "tc-pwr-014", {
-        1: { status: "passed", actual: "Module enumerated and reported READY in 1.2 s.", updatedAt: iso(-25) },
+        1: {
+          status: "passed",
+          actual: "Module enumerated and reported READY in 1.2 s.",
+          updatedAt: iso(-25),
+        },
         2: { status: "passed", actual: "No fault flags raised up to 15.5 V.", updatedAt: iso(-24) },
         3: {
           status: "passed",
@@ -612,7 +616,11 @@ export function createSeedState(): AppState {
         4: { status: "in_progress", actual: "", updatedAt: iso(-20) },
       }),
       ...results("exec-3", "tc-thm-008", {
-        1: { status: "passed", actual: "Die temperature reported 25.8 °C at stabilisation.", updatedAt: iso(-58) },
+        1: {
+          status: "passed",
+          actual: "Die temperature reported 25.8 °C at stabilisation.",
+          updatedAt: iso(-58),
+        },
         2: { status: "passed", actual: "Throttling started at 89.4 °C.", updatedAt: iso(-55) },
         3: {
           status: "failed",
@@ -620,12 +628,28 @@ export function createSeedState(): AppState {
           comment: "Repeated twice with the same result. Chamber calibration certificate attached.",
           updatedAt: iso(-50),
         },
-        4: { status: "passed", actual: "Device recovered at 59.1 °C and resumed full clock.", updatedAt: iso(-48) },
-        5: { status: "passed", actual: "Telemetry contains shutdown and recovery events in order.", updatedAt: iso(-47) },
+        4: {
+          status: "passed",
+          actual: "Device recovered at 59.1 °C and resumed full clock.",
+          updatedAt: iso(-48),
+        },
+        5: {
+          status: "passed",
+          actual: "Telemetry contains shutdown and recovery events in order.",
+          updatedAt: iso(-47),
+        },
       }),
       ...results("exec-4", "tc-sig-003", {
-        1: { status: "passed", actual: "Probe compensation passed; eye visible.", updatedAt: iso(-11) },
-        2: { status: "passed", actual: "Eye height 196 mV, eye width 0.71 UI.", updatedAt: iso(-10) },
+        1: {
+          status: "passed",
+          actual: "Probe compensation passed; eye visible.",
+          updatedAt: iso(-11),
+        },
+        2: {
+          status: "passed",
+          actual: "Eye height 196 mV, eye width 0.71 UI.",
+          updatedAt: iso(-10),
+        },
         3: { status: "passed", actual: "Total jitter measured at 0.32 UI.", updatedAt: iso(-9) },
         4: {
           status: "failed",
@@ -636,13 +660,25 @@ export function createSeedState(): AppState {
       }),
       ...results("exec-5", "tc-dsp-006", {
         1: { status: "passed", actual: "Firmware reported DD-2026.7-rc3.", updatedAt: iso(-155) },
-        2: { status: "passed", actual: "Colour bars rendered cleanly, no dropped frames.", updatedAt: iso(-154) },
+        2: {
+          status: "passed",
+          actual: "Colour bars rendered cleanly, no dropped frames.",
+          updatedAt: iso(-154),
+        },
         3: { status: "passed", actual: "Transition completed in one frame.", updatedAt: iso(-153) },
         4: { status: "passed", actual: "Uniformity deviation 9.4%.", updatedAt: iso(-152) },
-        5: { status: "passed", actual: "Three self-refresh cycles with no corruption.", updatedAt: iso(-151) },
+        5: {
+          status: "passed",
+          actual: "Three self-refresh cycles with no corruption.",
+          updatedAt: iso(-151),
+        },
       }),
       ...results("exec-6", "tc-int-011", {
-        1: { status: "blocked", actual: "Thermal station did not report READY.", updatedAt: iso(-9) },
+        1: {
+          status: "blocked",
+          actual: "Thermal station did not report READY.",
+          updatedAt: iso(-9),
+        },
       }),
     ],
     evidence,

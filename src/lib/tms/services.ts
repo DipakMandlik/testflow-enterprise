@@ -30,7 +30,7 @@ export const DEMO_OTP = "123456";
 
 export type Result<T = void> = { ok: true; value: T } | { ok: false; error: string };
 
-const ok = <T,>(value: T): Result<T> => ({ ok: true, value });
+const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const fail = (error: string): Result<never> => ({ ok: false, error });
 
 const uid = (prefix: string) =>
@@ -81,13 +81,11 @@ function notify(
 }
 
 const reviewerIds = (state: AppState) =>
-  state.users.filter((u) => u.active && (u.role === "reviewer" || u.role === "manager")).map((u) => u.id);
+  state.users
+    .filter((u) => u.active && (u.role === "reviewer" || u.role === "manager"))
+    .map((u) => u.id);
 
-function patchExecution(
-  state: AppState,
-  id: string,
-  patch: Partial<TestExecution>,
-): AppState {
+function patchExecution(state: AppState, id: string, patch: Partial<TestExecution>): AppState {
   return {
     ...state,
     executions: state.executions.map((e) =>
@@ -102,7 +100,8 @@ export const currentUser = (state: AppState): User | null =>
   state.session ? (state.users.find((u) => u.id === state.session!.userId) ?? null) : null;
 
 export const userById = (state: AppState, id: string) => state.users.find((u) => u.id === id);
-export const testCaseById = (state: AppState, id: string) => state.testCases.find((t) => t.id === id);
+export const testCaseById = (state: AppState, id: string) =>
+  state.testCases.find((t) => t.id === id);
 export const executionById = (state: AppState, id: string) =>
   state.executions.find((e) => e.id === id);
 export const stepsFor = (state: AppState, testCaseId: string) =>
@@ -112,7 +111,9 @@ export const resultsFor = (state: AppState, executionId: string) =>
 export const evidenceFor = (state: AppState, executionId: string) =>
   state.evidence.filter((e) => e.executionId === executionId);
 export const reviewsFor = (state: AppState, executionId: string) =>
-  state.reviews.filter((r) => r.executionId === executionId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  state.reviews
+    .filter((r) => r.executionId === executionId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 export const auditFor = (state: AppState, entityId: string) =>
   state.audit.filter((a) => a.entityId === entityId);
 export const moduleById = (state: AppState, id: string) => state.modules.find((m) => m.id === id);
@@ -138,7 +139,9 @@ export function executionProgress(state: AppState, execution: TestExecution) {
 // ---- authentication --------------------------------------------------------
 
 export function login(state: AppState, employeeId: string, password: string): Result<AppState> {
-  const user = state.users.find((u) => u.employeeId.toUpperCase() === employeeId.trim().toUpperCase());
+  const user = state.users.find(
+    (u) => u.employeeId.toUpperCase() === employeeId.trim().toUpperCase(),
+  );
   if (!user) return fail("No employee found with that ID.");
   if (!user.active) return fail("This account is deactivated. Contact the platform administrator.");
   if (password !== DEMO_PASSWORD) return fail("Incorrect password.");
@@ -164,7 +167,11 @@ export function logout(state: AppState): AppState {
 
 // ---- execution workflow ----------------------------------------------------
 
-export function startExecution(state: AppState, actor: User, executionId: string): Result<AppState> {
+export function startExecution(
+  state: AppState,
+  actor: User,
+  executionId: string,
+): Result<AppState> {
   const execution = executionById(state, executionId);
   if (!execution) return fail("Execution not found.");
   if (!canExecuteTest(actor, execution)) return fail("You are not permitted to execute this test.");
@@ -252,7 +259,8 @@ export function blockExecution(
 ): Result<AppState> {
   const execution = executionById(state, executionId);
   if (!execution) return fail("Execution not found.");
-  if (!canExecuteTest(actor, execution)) return fail("You are not permitted to change this execution.");
+  if (!canExecuteTest(actor, execution))
+    return fail("You are not permitted to change this execution.");
   if (reason.trim().length < 10) return fail("Provide a block reason of at least 10 characters.");
   if (!canTransition(execution.status, ExecutionStatus.BLOCKED))
     return fail("This execution cannot be blocked from its current state.");
@@ -300,14 +308,21 @@ export function validateSubmission(state: AppState, execution: TestExecution): s
   return problems;
 }
 
-export function submitExecution(state: AppState, actor: User, executionId: string): Result<AppState> {
+export function submitExecution(
+  state: AppState,
+  actor: User,
+  executionId: string,
+): Result<AppState> {
   const execution = executionById(state, executionId);
   if (!execution) return fail("Execution not found.");
   if (!canSubmitExecution(actor, execution)) return fail("You cannot submit this execution.");
   const problems = validateSubmission(state, execution);
   if (problems.length) return fail(problems[0] ?? "Execution is incomplete.");
 
-  const resubmission = execution.status === ExecutionStatus.SENT_BACK;
+  // The execution passes through IN_PROGRESS again before resubmission (see
+  // reopenForRevision), so its *current* status can't tell a first submission
+  // from a resubmission — a prior review record can.
+  const resubmission = reviewsFor(state, executionId).length > 0;
   let next = patchExecution(state, executionId, {
     status: ExecutionStatus.SUBMITTED,
     submittedAt: new Date().toISOString(),
@@ -448,7 +463,10 @@ export function reopenForRevision(
   const execution = executionById(state, executionId);
   if (!execution) return fail("Execution not found.");
   if (!canExecuteTest(actor, execution)) return fail("You cannot revise this execution.");
-  if (execution.status !== ExecutionStatus.SENT_BACK && execution.status !== ExecutionStatus.BLOCKED)
+  if (
+    execution.status !== ExecutionStatus.SENT_BACK &&
+    execution.status !== ExecutionStatus.BLOCKED
+  )
     return ok(state);
   let next = patchExecution(state, executionId, {
     status: ExecutionStatus.IN_PROGRESS,
@@ -463,9 +481,20 @@ export function reopenForRevision(
 // ---- evidence --------------------------------------------------------------
 
 export const MAX_EVIDENCE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "application/pdf", "text/plain"];
+const ALLOWED_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+  "application/pdf",
+  "text/plain",
+];
 
-export function validateEvidenceFile(file: { name: string; size: number; type: string }): string | null {
+export function validateEvidenceFile(file: {
+  name: string;
+  size: number;
+  type: string;
+}): string | null {
   if (!file.name.trim()) return "The file needs a valid filename.";
   if (file.size > MAX_EVIDENCE_BYTES) return "Files must be 5 MB or smaller.";
   if (file.type && !ALLOWED_TYPES.includes(file.type))
@@ -550,7 +579,12 @@ export function setUserActive(
   return ok(next);
 }
 
-export function setUserRole(state: AppState, actor: User, userId: string, role: Role): Result<AppState> {
+export function setUserRole(
+  state: AppState,
+  actor: User,
+  userId: string,
+  role: Role,
+): Result<AppState> {
   if (!canManageUsers(actor)) return fail("Only administrators can manage users.");
   let next: AppState = {
     ...state,

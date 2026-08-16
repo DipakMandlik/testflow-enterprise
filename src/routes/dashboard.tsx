@@ -15,7 +15,13 @@ import {
   testCaseById,
   userById,
 } from "@/lib/tms/services";
-import { ExecutionStatus, statusLabel, type AppState, type TestExecution, type User } from "@/types/domain";
+import {
+  ExecutionStatus,
+  statusLabel,
+  type AppState,
+  type TestExecution,
+  type User,
+} from "@/types/domain";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -44,7 +50,15 @@ function Metric({ label, value, tone }: { label: string; value: number | string;
   );
 }
 
-function WorkItem({ state, execution, user }: { state: AppState; execution: TestExecution; user: User }) {
+function WorkItem({
+  state,
+  execution,
+  user,
+}: {
+  state: AppState;
+  execution: TestExecution;
+  user: User;
+}) {
   const tc = testCaseById(state, execution.testCaseId);
   const progress = executionProgress(state, execution);
   const action =
@@ -87,9 +101,12 @@ function TesterDashboard({ state, user }: { state: AppState; user: User }) {
   const byStatus = (s: ExecutionStatus) => mine.filter((e) => e.status === s);
   const queue = mine
     .filter((e) =>
-      [ExecutionStatus.SENT_BACK, ExecutionStatus.IN_PROGRESS, ExecutionStatus.ASSIGNED, ExecutionStatus.BLOCKED].includes(
-        e.status,
-      ),
+      [
+        ExecutionStatus.SENT_BACK,
+        ExecutionStatus.IN_PROGRESS,
+        ExecutionStatus.ASSIGNED,
+        ExecutionStatus.BLOCKED,
+      ].includes(e.status),
     )
     .sort((a, b) => a.status.localeCompare(b.status));
 
@@ -106,10 +123,15 @@ function TesterDashboard({ state, user }: { state: AppState; user: User }) {
         <Metric
           label="Awaiting review"
           value={
-            byStatus(ExecutionStatus.SUBMITTED).length + byStatus(ExecutionStatus.UNDER_REVIEW).length
+            byStatus(ExecutionStatus.SUBMITTED).length +
+            byStatus(ExecutionStatus.UNDER_REVIEW).length
           }
         />
-        <Metric label="Blocked" value={byStatus(ExecutionStatus.BLOCKED).length} tone="text-destructive" />
+        <Metric
+          label="Blocked"
+          value={byStatus(ExecutionStatus.BLOCKED).length}
+          tone="text-destructive"
+        />
         <Metric
           label="Completed"
           value={byStatus(ExecutionStatus.COMPLETED).length}
@@ -233,7 +255,11 @@ function ManagerDashboard({ state }: { state: AppState }) {
       return ex && cases.includes(ex.testCaseId) && r.status !== "not_started";
     });
     const p = modResults.filter((r) => r.status === "passed").length;
-    return { module: m.name, total: modResults.length, passRate: modResults.length ? Math.round((p / modResults.length) * 100) : 0 };
+    return {
+      module: m.name,
+      total: modResults.length,
+      passRate: modResults.length ? Math.round((p / modResults.length) * 100) : 0,
+    };
   });
 
   const testers = state.users.filter((u) => u.role === "tester");
@@ -260,8 +286,16 @@ function ManagerDashboard({ state }: { state: AppState }) {
           value={executions.filter((e) => e.status === ExecutionStatus.COMPLETED).length}
           tone="text-success"
         />
-        <Metric label="Pass rate" value={`${Math.round((passed / measured) * 100)}%`} tone="text-success" />
-        <Metric label="Fail rate" value={`${Math.round((failed / measured) * 100)}%`} tone="text-destructive" />
+        <Metric
+          label="Pass rate"
+          value={`${Math.round((passed / measured) * 100)}%`}
+          tone="text-success"
+        />
+        <Metric
+          label="Fail rate"
+          value={`${Math.round((failed / measured) * 100)}%`}
+          tone="text-destructive"
+        />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -294,7 +328,9 @@ function ManagerDashboard({ state }: { state: AppState }) {
                 <li key={t.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                   <span>
                     {t.name}
-                    {!t.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
+                    {!t.active && (
+                      <span className="ml-2 text-xs text-muted-foreground">inactive</span>
+                    )}
                   </span>
                   <span className="text-xs text-muted-foreground tabular-nums">
                     {done}/{mine.length} completed
