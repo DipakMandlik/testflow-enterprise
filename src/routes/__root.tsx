@@ -79,17 +79,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tata Electronics — Test Management Platform" },
+      { title: "Pibythree Quality Hub" },
       {
         name: "description",
         content:
-          "Enterprise test management and execution platform for Tata Electronics validation teams.",
+          "Digital quality inspection platform for Pibythree manufacturing validation teams.",
       },
-      { name: "author", content: "Tata Electronics" },
-      { property: "og:title", content: "Tata Electronics — Test Management Platform" },
+      { name: "author", content: "Pibythree" },
+      { property: "og:title", content: "Pibythree Quality Hub" },
       {
         property: "og:description",
-        content: "Plan, execute, review and approve hardware validation tests end to end.",
+        content: "Assign, execute, review, retest and approve quality checks end to end.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -113,7 +113,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <HeadContent />
       </head>

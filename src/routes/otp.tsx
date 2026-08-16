@@ -4,17 +4,17 @@ import { KeyRound, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useTms } from "@/lib/tms/store";
-import { currentUser, userById, verifyOtp } from "@/lib/tms/services";
+import { canAccessWorksheet, currentUser, userById, verifyOtp } from "@/lib/tms/services";
 
 export const Route = createFileRoute("/otp")({
   head: () => ({
     meta: [
-      { title: "Verify your code — Tata Electronics TMS" },
+      { title: "Verify your code — Pibythree Quality Hub" },
       {
         name: "description",
         content: "Enter the one-time verification code sent to your registered device.",
       },
-      { property: "og:title", content: "Verify your code — Tata Electronics TMS" },
+      { property: "og:title", content: "Verify your code — Pibythree Quality Hub" },
       { property: "og:description", content: "Two-step verification for platform sign-in." },
     ],
   }),
@@ -32,7 +32,12 @@ function OtpPage() {
 
   useEffect(() => {
     if (!ready) return;
-    if (currentUser(state)) void navigate({ to: "/dashboard", replace: true });
+    const user = currentUser(state);
+    if (user)
+      void navigate({
+        to: canAccessWorksheet(state, user) ? "/dashboard" : "/verify-location",
+        replace: true,
+      });
     else if (!state.pendingLoginUserId) void navigate({ to: "/", replace: true });
   }, [ready, state, navigate]);
 
@@ -50,8 +55,9 @@ function OtpPage() {
       return verifyOtp(state, value);
     });
     setVerifying(false);
-    if (okResult) void navigate({ to: "/dashboard", replace: true });
-    else setCode("");
+    if (!okResult) setCode("");
+    // Successful verification is handled by the redirect effect above, once
+    // `state` reflects the new session.
   };
 
   return (

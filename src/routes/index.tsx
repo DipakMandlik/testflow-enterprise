@@ -13,16 +13,15 @@ import { currentUser, login, DEMO_PASSWORD } from "@/lib/tms/services";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sign in — Tata Electronics Test Management" },
+      { title: "Sign in — Pibythree Quality Hub" },
       {
         name: "description",
-        content:
-          "Sign in with your Tata Electronics employee ID to access assigned tests, executions and reviews.",
+        content: "Sign in with your employee ID to access assigned units, executions and reviews.",
       },
-      { property: "og:title", content: "Sign in — Tata Electronics Test Management" },
+      { property: "og:title", content: "Sign in — Pibythree Quality Hub" },
       {
         property: "og:description",
-        content: "Secure employee sign-in for the Tata Electronics test execution platform.",
+        content: "Secure employee sign-in for the Pibythree digital quality inspection platform.",
       },
     ],
   }),
@@ -39,8 +38,10 @@ const loginSchema = z.object({
 
 const DEMO_ACCOUNTS = [
   { id: "TE-1001", name: "Priya Sharma", role: "Tester" },
-  { id: "TE-2001", name: "Rajesh Kumar", role: "Reviewer" },
+  { id: "TE-2001", name: "Rajesh Kumar", role: "Quality Checker" },
   { id: "TE-3001", name: "Anita Desai", role: "Manager" },
+  { id: "TE-4001", name: "Arjun Nair", role: "Senior Manager" },
+  { id: "TE-5001", name: "Kavya Menon", role: "Template Manager" },
   { id: "TE-9001", name: "Admin User", role: "Administrator" },
 ];
 
@@ -71,26 +72,26 @@ function LoginPage() {
       <section className="relative hidden flex-col justify-between border-r border-border bg-surface p-10 lg:flex">
         <div className="flex items-center gap-3">
           <div className="grid size-9 place-items-center rounded-sm bg-primary text-primary-foreground font-bold">
-            TE
+            π3
           </div>
           <div>
-            <p className="font-semibold">Tata Electronics</p>
-            <p className="text-xs text-muted-foreground">Test Management &amp; Execution</p>
+            <p className="font-semibold">Pibythree Quality Hub</p>
+            <p className="text-xs text-muted-foreground">Digital Quality Inspection</p>
           </div>
         </div>
         <div className="max-w-lg">
           <h2 className="text-3xl font-semibold leading-tight">
-            Validation work, tracked from first step to final approval.
+            Every quality check, tracked from first inspection to final approval.
           </h2>
           <p className="mt-4 text-sm text-muted-foreground">
-            Structured step execution, evidence capture, reviewer sign-off and a complete audit
-            trail — replacing spreadsheet-driven manual testing across semiconductor, power module
-            and display driver programmes.
+            Guided check execution, failure capture, evidence and a complete audit trail — replacing
+            the Excel checklist with a structured digital quality worksheet across the EQT
+            functional test programme.
           </p>
           <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-6">
             {[
-              ["Programmes", "3"],
-              ["Test cases", "6"],
+              ["Template families", "1"],
+              ["Quality checks", "17"],
               ["Traceable events", "Every transition"],
             ].map(([label, value]) => (
               <div key={label}>

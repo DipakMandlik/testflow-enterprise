@@ -11,6 +11,7 @@ import {
   Search,
   Settings2,
   BarChart3,
+  FileStack,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import { CommandPalette } from "@/components/tms/CommandPalette";
 import { cn } from "@/lib/utils";
 import { useTms } from "@/lib/tms/store";
 import {
+  canAccessWorksheet,
   currentUser,
   logout,
   markAllNotificationsRead,
@@ -36,7 +38,11 @@ import {
 } from "@/lib/tms/services";
 import {
   canManageAssignments,
-  canManageTestCases,
+  canManageDevices,
+  canManageFailureCategories,
+  canManagePlants,
+  canManageStations,
+  canManageTemplates,
   canManageUsers,
   canViewReports,
   canViewReview,
@@ -55,11 +61,18 @@ const NAV: NavItem[] = [
   { to: "/my-tests", label: "My Tests", icon: ClipboardList, show: (u) => u.role === "tester" },
   { to: "/reviews", label: "Review Queue", icon: ClipboardCheck, show: (u) => canViewReview(u) },
   { to: "/reports", label: "Reports", icon: BarChart3, show: (u) => canViewReports(u) },
+  { to: "/templates", label: "Templates", icon: FileStack, show: (u) => canManageTemplates(u) },
   {
     to: "/admin",
     label: "Administration",
     icon: Settings2,
-    show: (u) => canManageUsers(u) || canManageTestCases(u) || canManageAssignments(u),
+    show: (u) =>
+      canManageUsers(u) ||
+      canManageAssignments(u) ||
+      canManagePlants(u) ||
+      canManageStations(u) ||
+      canManageDevices(u) ||
+      canManageFailureCategories(u),
   },
 ];
 
@@ -184,10 +197,22 @@ export function AppShell({
   const user = currentUser(state);
 
   useEffect(() => {
-    if (ready && !user) void navigate({ to: "/", replace: true });
-  }, [ready, user, navigate]);
+    if (!ready) return;
+    if (!user) {
+      void navigate({ to: "/", replace: true });
+      return;
+    }
+    // A tester must not be able to bypass location/station verification by
+    // navigating straight to a protected route.
+    if (!canAccessWorksheet(state, user)) {
+      void navigate({
+        to: state.session?.locationVerifiedAt ? "/verify-station" : "/verify-location",
+        replace: true,
+      });
+    }
+  }, [ready, user, state, navigate]);
 
-  if (!ready || !user) {
+  if (!ready || !user || !canAccessWorksheet(state, user)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
         Loading workspace…
@@ -202,11 +227,11 @@ export function AppShell({
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
           <div className="flex items-center gap-2.5 border-b border-sidebar-border px-4 py-4">
             <div className="grid size-8 place-items-center rounded-sm bg-primary text-primary-foreground">
-              <span className="text-sm font-bold">TE</span>
+              <span className="text-xs font-bold">π3</span>
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-semibold">Tata Electronics</p>
-              <p className="text-[11px] text-muted-foreground">Test Management</p>
+              <p className="text-sm font-semibold">Pibythree</p>
+              <p className="text-[11px] text-muted-foreground">Quality Hub</p>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
@@ -239,7 +264,7 @@ export function AppShell({
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64 p-4">
-                  <SheetTitle className="mb-4 text-sm">Tata Electronics TMS</SheetTitle>
+                  <SheetTitle className="mb-4 text-sm">Pibythree Quality Hub</SheetTitle>
                   <NavLinks user={user} onNavigate={() => setMobileNav(false)} />
                 </SheetContent>
               </Sheet>
@@ -249,7 +274,7 @@ export function AppShell({
                 className="flex h-9 flex-1 max-w-md items-center gap-2 rounded-sm border border-border bg-background px-3 text-sm text-muted-foreground transition-colors hover:border-primary/50"
               >
                 <Search className="size-4" />
-                <span className="truncate">Search tests, executions, testers…</span>
+                <span className="truncate">Search units, checks, executions…</span>
                 <kbd className="ml-auto hidden rounded border border-border px-1.5 text-[10px] sm:block">
                   Ctrl K
                 </kbd>

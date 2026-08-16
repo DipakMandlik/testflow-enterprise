@@ -1,40 +1,40 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, ClipboardList, Inbox, PlayCircle, RefreshCw } from "lucide-react";
+import { ClipboardList, Inbox } from "lucide-react";
 import { AppShell } from "@/components/tms/AppShell";
 import { EmptyState } from "@/components/tms/EmptyState";
+import { ReassignSheet } from "@/components/tms/ReassignSheet";
 import { ActivityTimeline } from "@/components/tms/Timeline";
-import { PriorityBadge, StatusBadge } from "@/components/tms/badges";
+import { StatusBadge } from "@/components/tms/badges";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useTms } from "@/lib/tms/store";
 import {
+  allCurrentResults,
+  checksForCategory,
+  computeQualityMetrics,
   currentUser,
   executionProgress,
-  moduleById,
-  testCaseById,
+  failureHotspots,
+  templateById,
+  unitById,
   userById,
 } from "@/lib/tms/services";
 import {
   ExecutionStatus,
-  statusLabel,
+  TEMPLATE_STATUS_LABELS,
   type AppState,
-  type TestExecution,
+  type Execution,
   type User,
 } from "@/types/domain";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Tata Electronics TMS" },
+      { title: "Dashboard — Pibythree Quality Hub" },
       {
         name: "description",
-        content: "Your validation workload, review queue and programme quality at a glance.",
-      },
-      { property: "og:title", content: "Dashboard — Tata Electronics TMS" },
-      {
-        property: "og:description",
-        content: "Role-aware overview of assigned tests, reviews and testing health.",
+        content: "Your quality inspection workload, review queue and programme health at a glance.",
       },
     ],
   }),
@@ -56,33 +56,37 @@ function WorkItem({
   user,
 }: {
   state: AppState;
-  execution: TestExecution;
+  execution: Execution;
   user: User;
 }) {
-  const tc = testCaseById(state, execution.testCaseId);
+  const unit = unitById(state, execution.unitId);
+  const template = templateById(state, execution.templateId);
   const progress = executionProgress(state, execution);
   const action =
     execution.status === ExecutionStatus.ASSIGNED
       ? "Start"
-      : execution.status === ExecutionStatus.SENT_BACK
-        ? "Revise"
-        : execution.status === ExecutionStatus.IN_PROGRESS
-          ? "Continue"
-          : "View";
+      : execution.status === ExecutionStatus.RETEST_REQUIRED
+        ? "Resume Retest"
+        : execution.status === ExecutionStatus.RETEST_IN_PROGRESS
+          ? "Continue Retest"
+          : execution.status === ExecutionStatus.IN_PROGRESS
+            ? "Continue"
+            : "View";
 
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/40">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mono-id text-primary">{tc?.code}</span>
-          <span className="truncate text-sm font-medium">{tc?.title}</span>
+          <span className="mono-id text-primary">{unit?.usn}</span>
+          <span className="truncate text-sm font-medium">
+            {template?.name} Rev {template?.revision}
+          </span>
           <StatusBadge status={execution.status} role={user.role} />
-          {tc && <PriorityBadge priority={tc.priority} />}
         </div>
         <div className="mt-1.5 flex items-center gap-3">
           <Progress value={progress.percent} className="h-1 w-40" />
           <span className="text-xs text-muted-foreground">
-            {progress.completed}/{progress.total} steps · updated{" "}
+            {progress.completed}/{progress.total} checks · updated{" "}
             {formatDistanceToNow(new Date(execution.updatedAt), { addSuffix: true })}
           </span>
         </div>
@@ -102,10 +106,10 @@ function TesterDashboard({ state, user }: { state: AppState; user: User }) {
   const queue = mine
     .filter((e) =>
       [
-        ExecutionStatus.SENT_BACK,
+        ExecutionStatus.RETEST_REQUIRED,
+        ExecutionStatus.RETEST_IN_PROGRESS,
         ExecutionStatus.IN_PROGRESS,
         ExecutionStatus.ASSIGNED,
-        ExecutionStatus.BLOCKED,
       ].includes(e.status),
     )
     .sort((a, b) => a.status.localeCompare(b.status));
@@ -116,20 +120,17 @@ function TesterDashboard({ state, user }: { state: AppState; user: User }) {
         <Metric label="Assigned" value={byStatus(ExecutionStatus.ASSIGNED).length} />
         <Metric label="In progress" value={byStatus(ExecutionStatus.IN_PROGRESS).length} />
         <Metric
-          label="Revision required"
-          value={byStatus(ExecutionStatus.SENT_BACK).length}
+          label="Retest required"
+          value={
+            byStatus(ExecutionStatus.RETEST_REQUIRED).length +
+            byStatus(ExecutionStatus.RETEST_IN_PROGRESS).length
+          }
           tone="text-warning"
         />
+        <Metric label="Awaiting review" value={byStatus(ExecutionStatus.PENDING_REVIEW).length} />
         <Metric
-          label="Awaiting review"
-          value={
-            byStatus(ExecutionStatus.SUBMITTED).length +
-            byStatus(ExecutionStatus.UNDER_REVIEW).length
-          }
-        />
-        <Metric
-          label="Blocked"
-          value={byStatus(ExecutionStatus.BLOCKED).length}
+          label="Rejected"
+          value={byStatus(ExecutionStatus.REJECTED).length}
           tone="text-destructive"
         />
         <Metric
@@ -178,18 +179,18 @@ function TesterDashboard({ state, user }: { state: AppState; user: User }) {
   );
 }
 
-function ReviewerDashboard({ state, user }: { state: AppState; user: User }) {
-  const pending = state.executions.filter((e) =>
-    [ExecutionStatus.SUBMITTED, ExecutionStatus.UNDER_REVIEW].includes(e.status),
+function QualityCheckerDashboard({ state, user }: { state: AppState; user: User }) {
+  const pending = state.executions.filter((e) => e.status === ExecutionStatus.PENDING_REVIEW);
+  const retest = state.executions.filter((e) =>
+    [ExecutionStatus.RETEST_REQUIRED, ExecutionStatus.RETEST_IN_PROGRESS].includes(e.status),
   );
-  const sentBack = state.executions.filter((e) => e.status === ExecutionStatus.SENT_BACK);
   const completed = state.executions.filter((e) => e.status === ExecutionStatus.COMPLETED);
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 divide-border rounded-lg border border-border bg-surface sm:grid-cols-4">
-        <Metric label="Pending review" value={pending.length} tone="text-primary" />
-        <Metric label="Revision requested" value={sentBack.length} tone="text-warning" />
+        <Metric label="Pending verification" value={pending.length} tone="text-primary" />
+        <Metric label="Retest in flight" value={retest.length} tone="text-warning" />
         <Metric label="Completed" value={completed.length} tone="text-success" />
         <Metric label="Reviews recorded" value={state.reviews.length} />
       </div>
@@ -204,19 +205,19 @@ function ReviewerDashboard({ state, user }: { state: AppState; user: User }) {
         {pending.length ? (
           <ul className="divide-y divide-border">
             {pending.map((execution) => {
-              const tc = testCaseById(state, execution.testCaseId);
+              const unit = unitById(state, execution.unitId);
               const progress = executionProgress(state, execution);
               return (
                 <li key={execution.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="mono-id text-primary">{execution.code}</span>
-                      <span className="truncate text-sm font-medium">{tc?.title}</span>
+                      <span className="truncate text-sm font-medium">{unit?.usn}</span>
                       <StatusBadge status={execution.status} role={user.role} />
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {userById(state, execution.testerId)?.name} · {progress.passed} passed,{" "}
-                      {progress.failed} failed, {progress.blocked} blocked
+                      {progress.failed} failed, {progress.na} N/A
                     </p>
                   </div>
                   <Button asChild size="sm">
@@ -232,7 +233,7 @@ function ReviewerDashboard({ state, user }: { state: AppState; user: User }) {
           <EmptyState
             icon={ClipboardList}
             title="No submissions pending"
-            description="Executions appear here the moment a tester submits them for review."
+            description="Executions appear here the moment a tester submits them for verification."
           />
         )}
       </section>
@@ -242,27 +243,33 @@ function ReviewerDashboard({ state, user }: { state: AppState; user: User }) {
 
 function ManagerDashboard({ state }: { state: AppState }) {
   const executions = state.executions;
-  const results = state.stepResults.filter((r) => r.status !== "not_started");
-  const passed = results.filter((r) => r.status === "passed").length;
-  const failed = results.filter((r) => r.status === "failed").length;
-  const blocked = results.filter((r) => r.status === "blocked").length;
-  const measured = passed + failed + blocked || 1;
+  const results = allCurrentResults(state);
+  const metrics = computeQualityMetrics(results);
 
-  const byModule = state.modules.map((m) => {
-    const cases = state.testCases.filter((t) => t.moduleId === m.id).map((t) => t.id);
-    const modResults = state.stepResults.filter((r) => {
-      const ex = state.executions.find((e) => e.id === r.executionId);
-      return ex && cases.includes(ex.testCaseId) && r.status !== "not_started";
-    });
-    const p = modResults.filter((r) => r.status === "passed").length;
-    return {
-      module: m.name,
-      total: modResults.length,
-      passRate: modResults.length ? Math.round((p / modResults.length) * 100) : 0,
-    };
+  const categoryQuality = state.templateCategories.map((cat) => {
+    const checkIds = checksForCategory(state, cat.id).map((c) => c.id);
+    const catResults = results.filter((r) => checkIds.includes(r.templateCheckId));
+    const catMetrics = computeQualityMetrics(catResults);
+    return { category: cat, metrics: catMetrics };
   });
 
   const testers = state.users.filter((u) => u.role === "tester");
+  const OPEN_STATUSES = [
+    ExecutionStatus.ASSIGNED,
+    ExecutionStatus.IN_PROGRESS,
+    ExecutionStatus.RETEST_REQUIRED,
+    ExecutionStatus.RETEST_IN_PROGRESS,
+    ExecutionStatus.PENDING_REVIEW,
+  ];
+  const teamBoard = state.stations.map((station) => {
+    const execution = executions
+      .filter((e) => e.stationId === station.id && OPEN_STATUSES.includes(e.status))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+    const assignment = execution
+      ? state.assignments.find((a) => a.id === execution.assignmentId)
+      : undefined;
+    return { station, execution, assignment };
+  });
 
   return (
     <div className="space-y-5">
@@ -274,11 +281,7 @@ function ManagerDashboard({ state }: { state: AppState }) {
         />
         <Metric
           label="Pending review"
-          value={
-            executions.filter((e) =>
-              [ExecutionStatus.SUBMITTED, ExecutionStatus.UNDER_REVIEW].includes(e.status),
-            ).length
-          }
+          value={executions.filter((e) => e.status === ExecutionStatus.PENDING_REVIEW).length}
           tone="text-primary"
         />
         <Metric
@@ -286,30 +289,77 @@ function ManagerDashboard({ state }: { state: AppState }) {
           value={executions.filter((e) => e.status === ExecutionStatus.COMPLETED).length}
           tone="text-success"
         />
-        <Metric
-          label="Pass rate"
-          value={`${Math.round((passed / measured) * 100)}%`}
-          tone="text-success"
-        />
-        <Metric
-          label="Fail rate"
-          value={`${Math.round((failed / measured) * 100)}%`}
-          tone="text-destructive"
-        />
+        <Metric label="Pass rate" value={`${100 - metrics.failureRate}%`} tone="text-success" />
+        <Metric label="Fail rate" value={`${metrics.failureRate}%`} tone="text-destructive" />
       </div>
+
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
+        <header className="border-b border-border px-4 py-2.5">
+          <h2 className="text-sm font-semibold">Team testing board</h2>
+        </header>
+        <table className="w-full text-sm">
+          <thead className="border-b border-border text-left">
+            <tr className="label-caps">
+              <th className="px-4 py-2 font-medium">Station</th>
+              <th className="px-4 py-2 font-medium">Tester</th>
+              <th className="px-4 py-2 font-medium">Progress</th>
+              <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-3 py-2 text-right font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {teamBoard.map(({ station, execution, assignment }) => {
+              const tester = execution ? userById(state, execution.testerId) : undefined;
+              const prog = execution ? executionProgress(state, execution) : null;
+              return (
+                <tr key={station.id}>
+                  <td className="px-4 py-2.5">
+                    <span className="mono-id text-primary">{station.code}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{station.name}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{tester?.name ?? "—"}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">
+                    {prog ? `${prog.completed}/${prog.total}` : "—"}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {execution ? (
+                      <StatusBadge status={execution.status} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Idle</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {assignment && (
+                      <ReassignSheet
+                        assignment={assignment}
+                        execution={execution}
+                        trigger={
+                          <Button size="sm" variant="ghost">
+                            Reassign
+                          </Button>
+                        }
+                      />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="rounded-lg border border-border bg-surface">
           <header className="border-b border-border px-4 py-2.5">
-            <h2 className="text-sm font-semibold">Module quality</h2>
+            <h2 className="text-sm font-semibold">Category quality</h2>
           </header>
           <ul className="divide-y divide-border">
-            {byModule.map((m) => (
-              <li key={m.module} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="w-40 text-sm">{m.module}</span>
-                <Progress value={m.passRate} className="h-1.5 flex-1" />
-                <span className="w-24 text-right text-xs text-muted-foreground tabular-nums">
-                  {m.passRate}% of {m.total}
+            {categoryQuality.map(({ category, metrics: m }) => (
+              <li key={category.id} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="w-32 text-sm">{category.name}</span>
+                <Progress value={100 - m.failureRate} className="h-1.5 flex-1" />
+                <span className="w-32 text-right text-xs text-muted-foreground tabular-nums">
+                  {100 - m.failureRate}% of {m.totalResolved}
                 </span>
               </li>
             ))}
@@ -352,6 +402,143 @@ function ManagerDashboard({ state }: { state: AppState }) {
   );
 }
 
+function SeniorManagerDashboard({ state }: { state: AppState }) {
+  const results = allCurrentResults(state);
+  const metrics = computeQualityMetrics(results);
+  const hotspots = failureHotspots(state).slice(0, 6);
+  const stations = state.stations.map((station) => {
+    const executionIds = state.executions
+      .filter((e) => e.stationId === station.id)
+      .map((e) => e.id);
+    const stationResults = results.filter((r) => executionIds.includes(r.executionId));
+    return { station, metrics: computeQualityMetrics(stationResults) };
+  });
+
+  if (metrics.totalResolved === 0) {
+    return (
+      <div className="space-y-5">
+        <EmptyState
+          icon={Inbox}
+          title="Insufficient execution history"
+          description="Quality metrics appear here once checks have been resolved across executions. Nothing has been resolved yet."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 divide-border rounded-lg border border-border bg-surface sm:grid-cols-4">
+        <Metric label="First pass yield" value={`${metrics.firstPassYield}%`} tone="text-success" />
+        <Metric label="Failure rate" value={`${metrics.failureRate}%`} tone="text-destructive" />
+        <Metric label="Retest rate" value={`${metrics.retestRate}%`} tone="text-warning" />
+        <Metric label="Checks resolved" value={metrics.totalResolved} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="rounded-lg border border-border bg-surface">
+          <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
+            <h2 className="text-sm font-semibold">Failure hotspots</h2>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/reports">Full reports</Link>
+            </Button>
+          </header>
+          {hotspots.length ? (
+            <ul className="divide-y divide-border">
+              {hotspots.map((h) => (
+                <li
+                  key={h.category}
+                  className="flex items-center justify-between px-4 py-2.5 text-sm"
+                >
+                  <span>{h.category}</span>
+                  <span className="mono-id text-destructive">{h.count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              icon={Inbox}
+              title="No failures recorded"
+              description="Quality hotspots appear here once checks fail."
+            />
+          )}
+        </section>
+
+        <section className="rounded-lg border border-border bg-surface">
+          <header className="border-b border-border px-4 py-2.5">
+            <h2 className="text-sm font-semibold">Station performance</h2>
+          </header>
+          <ul className="divide-y divide-border">
+            {stations.map(({ station, metrics: m }) => (
+              <li key={station.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="mono-id w-16 text-primary">{station.code}</span>
+                {m.totalResolved > 0 ? (
+                  <>
+                    <Progress value={m.firstPassYield} className="h-1.5 flex-1" />
+                    <span className="w-28 text-right text-xs text-muted-foreground tabular-nums">
+                      FPY {m.firstPassYield}%
+                    </span>
+                  </>
+                ) : (
+                  <span className="flex-1 text-xs text-muted-foreground">No executions yet</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <section className="rounded-lg border border-border bg-surface p-4">
+        <h2 className="text-sm font-semibold">System activity</h2>
+        <div className="mt-4">
+          <ActivityTimeline state={state} events={state.audit.slice(0, 10)} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TemplateManagerDashboard({ state }: { state: AppState }) {
+  const byStatus = (s: string) => state.templates.filter((t) => t.status === s).length;
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 divide-border rounded-lg border border-border bg-surface sm:grid-cols-5">
+        <Metric label="Draft" value={byStatus("draft")} />
+        <Metric label="Under review" value={byStatus("under_review")} tone="text-warning" />
+        <Metric label="Published" value={byStatus("published")} tone="text-success" />
+        <Metric label="Archived" value={byStatus("archived")} />
+        <Metric
+          label="Total families"
+          value={new Set(state.templates.map((t) => t.familyCode)).size}
+        />
+      </div>
+
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
+        <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
+          <h2 className="text-sm font-semibold">Templates</h2>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/templates">Open template manager</Link>
+          </Button>
+        </header>
+        <ul className="divide-y divide-border">
+          {state.templates.map((t) => (
+            <li key={t.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
+              <span className="mono-id text-primary">{t.familyCode}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {t.name} Rev {t.revision}
+              </span>
+              <span className="label-caps text-xs">{TEMPLATE_STATUS_LABELS[t.status]}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {t.totalChecks} checks
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
 function DashboardPage() {
   const { state } = useTms();
   const user = currentUser(state);
@@ -359,9 +546,11 @@ function DashboardPage() {
   const description = user
     ? {
         tester: "Everything currently waiting on you, in execution order.",
-        reviewer: "Submissions awaiting your decision and recent review outcomes.",
-        manager: "Programme-wide testing health derived from live execution data.",
-        admin: "Platform-wide state across users, projects and executions.",
+        quality_checker: "Submissions awaiting your decision and recent verification outcomes.",
+        manager: "Programme-wide quality health derived from live execution data.",
+        senior_manager: "Executive quality summary across every plant and station.",
+        template_manager: "Template families, revisions and publication status.",
+        admin: "Platform-wide state across users, plants, stations and executions.",
       }[user.role]
     : "";
 
@@ -370,8 +559,12 @@ function DashboardPage() {
       {user ? (
         user.role === "tester" ? (
           <TesterDashboard state={state} user={user} />
-        ) : user.role === "reviewer" ? (
-          <ReviewerDashboard state={state} user={user} />
+        ) : user.role === "quality_checker" ? (
+          <QualityCheckerDashboard state={state} user={user} />
+        ) : user.role === "senior_manager" ? (
+          <SeniorManagerDashboard state={state} />
+        ) : user.role === "template_manager" ? (
+          <TemplateManagerDashboard state={state} />
         ) : (
           <ManagerDashboard state={state} />
         )
@@ -379,5 +572,3 @@ function DashboardPage() {
     </AppShell>
   );
 }
-
-export const dashboardIcons = { AlertTriangle, PlayCircle, RefreshCw, statusLabel };

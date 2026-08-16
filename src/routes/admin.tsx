@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { AppShell } from "@/components/tms/AppShell";
+import { ReassignSheet } from "@/components/tms/ReassignSheet";
 import { ActivityTimeline } from "@/components/tms/Timeline";
 import { PriorityBadge } from "@/components/tms/badges";
 import { Button } from "@/components/ui/button";
@@ -25,45 +26,61 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { useTms } from "@/lib/tms/store";
 import {
-  currentUser,
+  addFailureCategory,
   createAssignment,
-  createProject,
-  createTestCase,
+  createDevice,
+  createLocation,
+  createPlant,
+  createStation,
+  createUnit,
   createUser,
+  currentUser,
+  locationsForPlant,
+  setDeviceStatus,
+  setStationStatus,
   setUserActive,
   setUserRole,
+  stationById,
+  stationsForPlant,
+  templateById,
+  userById,
 } from "@/lib/tms/services";
 import {
   canManageAssignments,
-  canManageProjects,
-  canManageTestCases,
+  canManageDevices,
+  canManageFailureCategories,
+  canManagePlants,
+  canManageStations,
   canManageUsers,
 } from "@/lib/tms/permissions";
-import type { Priority, Role } from "@/types/domain";
+import type { Priority, Role, StationStatus } from "@/types/domain";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Administration — Tata Electronics TMS" },
+      { title: "Administration — Pibythree Quality Hub" },
       {
         name: "description",
-        content: "Users, projects, test cases, assignments and the platform audit trail.",
-      },
-      { property: "og:title", content: "Administration — Tata Electronics TMS" },
-      {
-        property: "og:description",
-        content: "Master data and audit oversight for the test platform.",
+        content:
+          "Users, plants, stations, devices, failure categories and the platform audit trail.",
       },
     ],
   }),
   component: AdminPage,
 });
 
-const ROLES: Role[] = ["tester", "reviewer", "manager", "admin"];
+const ROLES: Role[] = [
+  "tester",
+  "quality_checker",
+  "manager",
+  "senior_manager",
+  "template_manager",
+  "admin",
+];
 const PRIORITIES: Priority[] = ["critical", "high", "medium", "low"];
+const STATION_STATUSES: StationStatus[] = ["active", "inactive", "maintenance"];
 
 function NewUserDialog() {
   const { run } = useTms();
@@ -133,7 +150,7 @@ function NewUserDialog() {
               <SelectContent>
                 {ROLES.map((r) => (
                   <SelectItem key={r} value={r} className="capitalize">
-                    {r}
+                    {r.replace(/_/g, " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -170,15 +187,36 @@ function NewUserDialog() {
 function UsersSection() {
   const { state, run } = useTms();
   const admin = canManageUsers(currentUser(state)!);
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const users = state.users.filter(
+    (u) =>
+      !q ||
+      u.name.toLowerCase().includes(q) ||
+      u.employeeId.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q),
+  );
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface">
-      <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <h2 className="text-sm font-semibold">Users ({state.users.length})</h2>
-        {admin && <NewUserDialog />}
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+        <h2 className="text-sm font-semibold">
+          Users ({users.length}
+          {users.length !== state.users.length ? ` of ${state.users.length}` : ""})
+        </h2>
+        <div className="flex items-center gap-2">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, ID or email"
+            className="h-8 w-56"
+            aria-label="Search users"
+          />
+          {admin && <NewUserDialog />}
+        </div>
       </header>
       <ul className="divide-y divide-border">
-        {state.users.map((u) => (
+        {users.map((u) => (
           <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{u.name}</p>
@@ -191,19 +229,19 @@ function UsersSection() {
                 value={u.role}
                 onValueChange={(v) => run((s) => setUserRole(s, currentUser(s)!, u.id, v as Role))}
               >
-                <SelectTrigger className="h-8 w-32 capitalize">
+                <SelectTrigger className="h-8 w-40 capitalize">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
                     <SelectItem key={r} value={r} className="capitalize">
-                      {r}
+                      {r.replace(/_/g, " ")}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             ) : (
-              <span className="label-caps">{u.role}</span>
+              <span className="label-caps">{u.role.replace(/_/g, " ")}</span>
             )}
             {admin ? (
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -223,55 +261,44 @@ function UsersSection() {
             )}
           </li>
         ))}
+        {!users.length && (
+          <li className="px-4 py-6 text-sm text-muted-foreground">No users match this search.</li>
+        )}
       </ul>
     </section>
   );
 }
 
-function NewProjectDialog() {
+function NewPlantDialog() {
   const { run } = useTms();
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <Plus className="size-4" /> New project
+          <Plus className="size-4" /> New plant
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a project</DialogTitle>
-          <DialogDescription>
-            Projects group modules, environments and test cases.
-          </DialogDescription>
+          <DialogTitle>Create a plant</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="new-proj-code">Project code</Label>
+            <Label htmlFor="plant-code">Plant code</Label>
             <Input
-              id="new-proj-code"
-              placeholder="EMC-VAL"
+              id="plant-code"
               className="mono-id"
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="new-proj-name">Name</Label>
-            <Input id="new-proj-name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="new-proj-desc">Description</Label>
-            <Textarea
-              id="new-proj-desc"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+            <Label htmlFor="plant-name">Name</Label>
+            <Input id="plant-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
@@ -281,21 +308,17 @@ function NewProjectDialog() {
           <Button
             disabled={!code.trim() || !name.trim()}
             onClick={() => {
-              const ok = run(
-                (s) => createProject(s, currentUser(s)!, { code, name, description }),
-                {
-                  success: "Project created.",
-                },
-              );
+              const ok = run((s) => createPlant(s, currentUser(s)!, { code, name }), {
+                success: "Plant created.",
+              });
               if (ok) {
                 setOpen(false);
                 setCode("");
                 setName("");
-                setDescription("");
               }
             }}
           >
-            Create project
+            Create plant
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -303,230 +326,97 @@ function NewProjectDialog() {
   );
 }
 
-function ProjectsSection() {
-  const { state } = useTms();
-  const admin = canManageProjects(currentUser(state)!);
+function NewLocationDialog({ plantId }: { plantId: string }) {
+  const { run } = useTms();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-surface">
-      <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <h2 className="text-sm font-semibold">Projects ({state.projects.length})</h2>
-        {admin && <NewProjectDialog />}
-      </header>
-      <ul className="divide-y divide-border">
-        {state.projects.map((p) => (
-          <li key={p.id} className="px-4 py-2.5 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="mono-id text-primary">{p.code}</span>
-              <span>{p.name}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {state.modules.filter((m) => m.projectId === p.id).length} modules ·{" "}
-              {state.testCases.filter((t) => t.projectId === p.id).length} test cases
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Plus className="size-3.5" /> Add location
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a location</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="location-name">Name</Label>
+          <Input id="location-name" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!name.trim()}
+            onClick={() => {
+              const ok = run((s) => createLocation(s, currentUser(s)!, { plantId, name }), {
+                success: "Location added.",
+              });
+              if (ok) {
+                setOpen(false);
+                setName("");
+              }
+            }}
+          >
+            Add location
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-interface StepDraft {
-  action: string;
-  expected: string;
-}
-
-function NewTestCaseDialog() {
+function NewStationDialog({ plantId }: { plantId: string }) {
   const { state, run } = useTms();
   const [open, setOpen] = useState(false);
+  const [locationId, setLocationId] = useState("");
   const [code, setCode] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [projectId, setProjectId] = useState(state.projects[0]?.id ?? "");
-  const [moduleId, setModuleId] = useState("");
-  const [environmentId, setEnvironmentId] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [steps, setSteps] = useState<StepDraft[]>([{ action: "", expected: "" }]);
-
-  const modules = state.modules.filter((m) => m.projectId === projectId);
-  const environments = state.environments.filter((e) => e.projectId === projectId);
-  const validSteps = steps.filter((s) => s.action.trim() && s.expected.trim());
-
-  const reset = () => {
-    setCode("");
-    setTitle("");
-    setDescription("");
-    setModuleId("");
-    setEnvironmentId("");
-    setPriority("medium");
-    setSteps([{ action: "", expected: "" }]);
-  };
+  const [name, setName] = useState("");
+  const locations = locationsForPlant(state, plantId);
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (!o) reset();
-      }}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="size-4" /> New test case
+        <Button size="sm" variant="outline">
+          <Plus className="size-3.5" /> Add station
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a test case</DialogTitle>
-          <DialogDescription>
-            Define the case and its steps. Steps can be refined later.
-          </DialogDescription>
+          <DialogTitle>Add a station</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="tc-code">Test case ID</Label>
-              <Input
-                id="tc-code"
-                placeholder="TC-PWR-020"
-                className="mono-id"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="tc-title">Title</Label>
-              <Input id="tc-title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
+          <div className="space-y-1.5">
+            <Label>Location</Label>
+            <Select value={locationId} onValueChange={setLocationId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a location" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>
+                    {l.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="tc-desc">Description</Label>
-            <Textarea
-              id="tc-desc"
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+            <Label htmlFor="station-code">Station code</Label>
+            <Input
+              id="station-code"
+              className="mono-id"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Project</Label>
-              <Select
-                value={projectId}
-                onValueChange={(v) => {
-                  setProjectId(v);
-                  setModuleId("");
-                  setEnvironmentId("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {state.projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Priority</Label>
-              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p} className="capitalize">
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Module</Label>
-              <Select value={moduleId} onValueChange={setModuleId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a module" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modules.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Environment</Label>
-              <Select value={environmentId} onValueChange={setEnvironmentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an environment" />
-                </SelectTrigger>
-                <SelectContent>
-                  {environments.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2 border-t border-border pt-3">
-            <div className="flex items-center justify-between">
-              <Label>Steps ({validSteps.length} ready)</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setSteps((s) => [...s, { action: "", expected: "" }])}
-              >
-                <Plus className="size-3.5" /> Add step
-              </Button>
-            </div>
-            {steps.map((step, i) => (
-              <div
-                key={i}
-                className="grid gap-2 rounded-sm border border-border p-2 sm:grid-cols-[1fr_1fr_auto]"
-              >
-                <Textarea
-                  placeholder={`Step ${i + 1} action`}
-                  rows={2}
-                  value={step.action}
-                  onChange={(e) =>
-                    setSteps((prev) =>
-                      prev.map((s, idx) => (idx === i ? { ...s, action: e.target.value } : s)),
-                    )
-                  }
-                />
-                <Textarea
-                  placeholder="Expected result"
-                  rows={2}
-                  value={step.expected}
-                  onChange={(e) =>
-                    setSteps((prev) =>
-                      prev.map((s, idx) => (idx === i ? { ...s, expected: e.target.value } : s)),
-                    )
-                  }
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  disabled={steps.length === 1}
-                  onClick={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))}
-                  aria-label={`Remove step ${i + 1}`}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            ))}
+          <div className="space-y-1.5">
+            <Label htmlFor="station-name">Name</Label>
+            <Input id="station-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
@@ -534,31 +424,21 @@ function NewTestCaseDialog() {
             Cancel
           </Button>
           <Button
-            disabled={
-              !code.trim() || !title.trim() || !moduleId || !environmentId || !validSteps.length
-            }
+            disabled={!locationId || !code.trim() || !name.trim()}
             onClick={() => {
               const ok = run(
-                (s) =>
-                  createTestCase(s, currentUser(s)!, {
-                    code,
-                    title,
-                    description,
-                    projectId,
-                    moduleId,
-                    environmentId,
-                    priority,
-                    steps: validSteps,
-                  }),
-                { success: "Test case created." },
+                (s) => createStation(s, currentUser(s)!, { plantId, locationId, code, name }),
+                { success: "Station created." },
               );
               if (ok) {
                 setOpen(false);
-                reset();
+                setLocationId("");
+                setCode("");
+                setName("");
               }
             }}
           >
-            Create test case
+            Create station
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -566,23 +446,188 @@ function NewTestCaseDialog() {
   );
 }
 
-function TestCasesSection() {
-  const { state } = useTms();
-  const canManage = canManageTestCases(currentUser(state)!);
+function PlantsStationsSection() {
+  const { state, run } = useTms();
+  const user = currentUser(state)!;
+  const managePlants = canManagePlants(user);
+  const manageStations = canManageStations(user);
+
+  return (
+    <div className="space-y-5">
+      {managePlants && (
+        <div className="flex justify-end">
+          <NewPlantDialog />
+        </div>
+      )}
+      {state.plants.map((plant) => (
+        <section
+          key={plant.id}
+          className="overflow-hidden rounded-lg border border-border bg-surface"
+        >
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+            <h2 className="text-sm font-semibold">
+              {plant.code} · {plant.name}
+            </h2>
+            {manageStations && (
+              <div className="flex gap-2">
+                <NewLocationDialog plantId={plant.id} />
+                <NewStationDialog plantId={plant.id} />
+              </div>
+            )}
+          </header>
+          <ul className="divide-y divide-border">
+            {stationsForPlant(state, plant.id).map((station) => (
+              <li
+                key={station.id}
+                className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm"
+              >
+                <span className="mono-id text-primary">{station.code}</span>
+                <span className="min-w-0 flex-1 truncate">{station.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {
+                    locationsForPlant(state, plant.id).find((l) => l.id === station.locationId)
+                      ?.name
+                  }
+                </span>
+                {manageStations ? (
+                  <Select
+                    value={station.status}
+                    onValueChange={(v) =>
+                      run((s) =>
+                        setStationStatus(s, currentUser(s)!, station.id, v as StationStatus),
+                      )
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-32 capitalize">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATION_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s} className="capitalize">
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="label-caps capitalize">{station.status}</span>
+                )}
+              </li>
+            ))}
+            {!stationsForPlant(state, plant.id).length && (
+              <li className="px-4 py-3 text-sm text-muted-foreground">
+                No stations at this plant yet.
+              </li>
+            )}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function NewDeviceDialog() {
+  const { state, run } = useTms();
+  const [open, setOpen] = useState(false);
+  const [stationId, setStationId] = useState("");
+  const [name, setName] = useState("");
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="size-4" /> New device
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Register a device</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Station</Label>
+            <Select value={stationId} onValueChange={setStationId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a station" />
+              </SelectTrigger>
+              <SelectContent>
+                {state.stations.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.code} — {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="device-name">Device name</Label>
+            <Input
+              id="device-name"
+              className="mono-id"
+              placeholder="TAB-EQT-05-01"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!stationId || !name.trim()}
+            onClick={() => {
+              const ok = run((s) => createDevice(s, currentUser(s)!, { stationId, name }), {
+                success: "Device registered.",
+              });
+              if (ok) {
+                setOpen(false);
+                setStationId("");
+                setName("");
+              }
+            }}
+          >
+            Register device
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DevicesSection() {
+  const { state, run } = useTms();
+  const manage = canManageDevices(currentUser(state)!);
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface">
       <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <h2 className="text-sm font-semibold">Test cases ({state.testCases.length})</h2>
-        {canManage && <NewTestCaseDialog />}
+        <h2 className="text-sm font-semibold">Devices ({state.devices.length})</h2>
+        {manage && <NewDeviceDialog />}
       </header>
       <ul className="divide-y divide-border">
-        {state.testCases.map((tc) => (
-          <li key={tc.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
-            <span className="mono-id text-primary">{tc.code}</span>
-            <span className="min-w-0 flex-1 truncate">{tc.title}</span>
-            <PriorityBadge priority={tc.priority} />
-            <span className="text-xs text-muted-foreground">v{tc.version}</span>
+        {state.devices.map((d) => (
+          <li key={d.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
+            <span className="mono-id text-primary">{d.name}</span>
+            <span className="text-xs text-muted-foreground">
+              {stationById(state, d.stationId)?.code}
+            </span>
+            {manage ? (
+              <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                <Switch
+                  checked={d.status === "online"}
+                  onCheckedChange={(checked) =>
+                    run((s) =>
+                      setDeviceStatus(s, currentUser(s)!, d.id, checked ? "online" : "offline"),
+                    )
+                  }
+                  aria-label={`Mark ${d.name} ${d.status === "online" ? "offline" : "online"}`}
+                />
+                {d.status === "online" ? "Online" : "Offline"}
+              </label>
+            ) : (
+              <span className="ml-auto text-xs text-muted-foreground">{d.status}</span>
+            )}
           </li>
         ))}
       </ul>
@@ -590,18 +635,86 @@ function TestCasesSection() {
   );
 }
 
+function NewUnitDialog() {
+  const { run } = useTms();
+  const [open, setOpen] = useState(false);
+  const [usn, setUsn] = useState("");
+  const [familyCode, setFamilyCode] = useState("");
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Plus className="size-3.5" /> New unit
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Register a unit</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="unit-usn">USN</Label>
+            <Input
+              id="unit-usn"
+              className="mono-id"
+              value={usn}
+              onChange={(e) => setUsn(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="unit-family">Product family</Label>
+            <Input
+              id="unit-family"
+              className="mono-id"
+              placeholder="OJAS-EQT"
+              value={familyCode}
+              onChange={(e) => setFamilyCode(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!usn.trim() || !familyCode.trim()}
+            onClick={() => {
+              const ok = run((s) => createUnit(s, currentUser(s)!, { usn, familyCode }), {
+                success: "Unit registered.",
+              });
+              if (ok) {
+                setOpen(false);
+                setUsn("");
+                setFamilyCode("");
+              }
+            }}
+          >
+            Register unit
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function NewAssignmentDialog() {
   const { state, run } = useTms();
   const [open, setOpen] = useState(false);
-  const [testCaseId, setTestCaseId] = useState("");
+  const [unitId, setUnitId] = useState("");
+  const [templateId, setTemplateId] = useState("");
   const [testerId, setTesterId] = useState("");
+  const [stationId, setStationId] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const testers = state.users.filter((u) => u.role === "tester" && u.active);
+  const publishedTemplates = state.templates.filter((t) => t.status === "published");
 
   const reset = () => {
-    setTestCaseId("");
+    setUnitId("");
+    setTemplateId("");
     setTesterId("");
+    setStationId("");
     setDueAt("");
     setPriority("medium");
   };
@@ -621,41 +734,75 @@ function NewAssignmentDialog() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Assign a test case</DialogTitle>
+          <DialogTitle>Assign a unit</DialogTitle>
           <DialogDescription>
             Creates the assignment and its execution, and notifies the tester.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Test case</Label>
-            <Select value={testCaseId} onValueChange={setTestCaseId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a test case" />
-              </SelectTrigger>
-              <SelectContent>
-                {state.testCases.map((tc) => (
-                  <SelectItem key={tc.id} value={tc.id}>
-                    {tc.code} · {tc.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Unit</Label>
+              <Select value={unitId} onValueChange={setUnitId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {state.units.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.usn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Template</Label>
+              <Select value={templateId} onValueChange={setTemplateId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a published template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {publishedTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} Rev {t.revision}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Tester</Label>
-            <Select value={testerId} onValueChange={setTesterId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a tester" />
-              </SelectTrigger>
-              <SelectContent>
-                {testers.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name} ({t.employeeId})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Tester</Label>
+              <Select value={testerId} onValueChange={setTesterId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a tester" />
+                </SelectTrigger>
+                <SelectContent>
+                  {testers.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.employeeId})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Station</Label>
+              <Select value={stationId} onValueChange={setStationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a station" />
+                </SelectTrigger>
+                <SelectContent>
+                  {state.stations.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.code} — {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -689,13 +836,15 @@ function NewAssignmentDialog() {
             Cancel
           </Button>
           <Button
-            disabled={!testCaseId || !testerId || !dueAt}
+            disabled={!unitId || !templateId || !testerId || !stationId || !dueAt}
             onClick={() => {
               const ok = run(
                 (s) =>
                   createAssignment(s, currentUser(s)!, {
-                    testCaseId,
+                    unitId,
+                    templateId,
                     testerId,
+                    stationId,
                     dueAt: new Date(dueAt).toISOString(),
                     priority,
                   }),
@@ -715,34 +864,140 @@ function NewAssignmentDialog() {
   );
 }
 
-function AssignmentsSection() {
+function UnitsAssignmentsSection() {
   const { state } = useTms();
-  const canManage = canManageAssignments(currentUser(state)!);
+  const manage = canManageAssignments(currentUser(state)!);
+
+  return (
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
+        <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
+          <h2 className="text-sm font-semibold">Units ({state.units.length})</h2>
+          {manage && <NewUnitDialog />}
+        </header>
+        <ul className="divide-y divide-border">
+          {state.units.map((u) => (
+            <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
+              <span className="mono-id text-primary">{u.usn}</span>
+              <span className="text-xs text-muted-foreground">{u.familyCode}</span>
+            </li>
+          ))}
+          {!state.units.length && (
+            <li className="px-4 py-6 text-sm text-muted-foreground">No units registered yet.</li>
+          )}
+        </ul>
+      </section>
+
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
+        <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
+          <h2 className="text-sm font-semibold">Assignments ({state.assignments.length})</h2>
+          {manage && <NewAssignmentDialog />}
+        </header>
+        <ul className="divide-y divide-border">
+          {[...state.assignments].reverse().map((a) => {
+            const unit = state.units.find((u) => u.id === a.unitId);
+            const template = templateById(state, a.templateId);
+            const tester = userById(state, a.testerId);
+            const execution = state.executions.find((e) => e.assignmentId === a.id);
+            return (
+              <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="mono-id text-primary">{unit?.usn}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {template?.name} Rev {template?.revision} · {tester?.name}
+                </span>
+                <PriorityBadge priority={a.priority} />
+                <span className="text-xs text-muted-foreground">
+                  due {new Date(a.dueAt).toLocaleDateString()}
+                </span>
+                {manage && (
+                  <ReassignSheet
+                    assignment={a}
+                    execution={execution}
+                    trigger={
+                      <Button size="sm" variant="ghost">
+                        Reassign
+                      </Button>
+                    }
+                  />
+                )}
+              </li>
+            );
+          })}
+          {!state.assignments.length && (
+            <li className="px-4 py-6 text-sm text-muted-foreground">No assignments yet.</li>
+          )}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function NewFailureCategoryDialog() {
+  const { run } = useTms();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="size-4" /> New category
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a failure category</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="failure-category-name">Name</Label>
+          <Input
+            id="failure-category-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!name.trim()}
+            onClick={() => {
+              const ok = run((s) => addFailureCategory(s, currentUser(s)!, name.trim()), {
+                success: "Failure category added.",
+              });
+              if (ok) {
+                setOpen(false);
+                setName("");
+              }
+            }}
+          >
+            Add category
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FailureCategoriesSection() {
+  const { state } = useTms();
+  const manage = canManageFailureCategories(currentUser(state)!);
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface">
       <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <h2 className="text-sm font-semibold">Assignments ({state.assignments.length})</h2>
-        {canManage && <NewAssignmentDialog />}
+        <h2 className="text-sm font-semibold">
+          Failure categories ({state.failureCategories.length})
+        </h2>
+        {manage && <NewFailureCategoryDialog />}
       </header>
-      <ul className="divide-y divide-border">
-        {[...state.assignments].reverse().map((a) => {
-          const tc = state.testCases.find((t) => t.id === a.testCaseId);
-          const tester = state.users.find((u) => u.id === a.testerId);
-          return (
-            <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
-              <span className="mono-id text-primary">{tc?.code}</span>
-              <span className="min-w-0 flex-1 truncate">{tester?.name}</span>
-              <PriorityBadge priority={a.priority} />
-              <span className="text-xs text-muted-foreground">
-                due {new Date(a.dueAt).toLocaleDateString()}
-              </span>
-            </li>
-          );
-        })}
-        {!state.assignments.length && (
-          <li className="px-4 py-6 text-sm text-muted-foreground">No assignments yet.</li>
-        )}
+      <ul className="flex flex-wrap gap-2 p-4">
+        {state.failureCategories.map((c) => (
+          <li key={c} className="rounded-sm border border-border px-2.5 py-1 text-sm">
+            {c}
+          </li>
+        ))}
       </ul>
     </section>
   );
@@ -755,14 +1010,21 @@ function AdminPage() {
   return (
     <AppShell
       title="Administration"
-      description="Manage users, projects, test cases, assignments and the audit trail."
+      description="Manage users, plants, stations, devices and platform-wide configuration."
     >
       <Tabs defaultValue="users">
         <TabsList>
           {canManageUsers(user) && <TabsTrigger value="users">Users</TabsTrigger>}
-          {canManageProjects(user) && <TabsTrigger value="projects">Projects</TabsTrigger>}
-          {canManageTestCases(user) && <TabsTrigger value="test-cases">Test cases</TabsTrigger>}
-          {canManageAssignments(user) && <TabsTrigger value="assignments">Assignments</TabsTrigger>}
+          {(canManagePlants(user) || canManageStations(user)) && (
+            <TabsTrigger value="plants">Plants &amp; Stations</TabsTrigger>
+          )}
+          {canManageDevices(user) && <TabsTrigger value="devices">Devices</TabsTrigger>}
+          {canManageAssignments(user) && (
+            <TabsTrigger value="units">Units &amp; Assignments</TabsTrigger>
+          )}
+          {canManageFailureCategories(user) && (
+            <TabsTrigger value="failure-categories">Failure Categories</TabsTrigger>
+          )}
           <TabsTrigger value="audit">Audit trail</TabsTrigger>
         </TabsList>
 
@@ -771,19 +1033,24 @@ function AdminPage() {
             <UsersSection />
           </TabsContent>
         )}
-        {canManageProjects(user) && (
-          <TabsContent value="projects">
-            <ProjectsSection />
+        {(canManagePlants(user) || canManageStations(user)) && (
+          <TabsContent value="plants">
+            <PlantsStationsSection />
           </TabsContent>
         )}
-        {canManageTestCases(user) && (
-          <TabsContent value="test-cases">
-            <TestCasesSection />
+        {canManageDevices(user) && (
+          <TabsContent value="devices">
+            <DevicesSection />
           </TabsContent>
         )}
         {canManageAssignments(user) && (
-          <TabsContent value="assignments">
-            <AssignmentsSection />
+          <TabsContent value="units">
+            <UnitsAssignmentsSection />
+          </TabsContent>
+        )}
+        {canManageFailureCategories(user) && (
+          <TabsContent value="failure-categories">
+            <FailureCategoriesSection />
           </TabsContent>
         )}
         <TabsContent value="audit">
