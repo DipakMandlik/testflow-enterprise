@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ClipboardList, Inbox } from "lucide-react";
 import { AppShell } from "@/components/tms/AppShell";
 import { EmptyState } from "@/components/tms/EmptyState";
+import { ReassignSheet } from "@/components/tms/ReassignSheet";
 import { ActivityTimeline } from "@/components/tms/Timeline";
 import { StatusBadge } from "@/components/tms/badges";
 import { Button } from "@/components/ui/button";
@@ -253,13 +254,21 @@ function ManagerDashboard({ state }: { state: AppState }) {
   });
 
   const testers = state.users.filter((u) => u.role === "tester");
-  const liveStations = state.stations.map((station) => {
-    const active = executions.find(
-      (e) =>
-        e.stationId === station.id &&
-        [ExecutionStatus.IN_PROGRESS, ExecutionStatus.RETEST_IN_PROGRESS].includes(e.status),
-    );
-    return { station, active };
+  const OPEN_STATUSES = [
+    ExecutionStatus.ASSIGNED,
+    ExecutionStatus.IN_PROGRESS,
+    ExecutionStatus.RETEST_REQUIRED,
+    ExecutionStatus.RETEST_IN_PROGRESS,
+    ExecutionStatus.PENDING_REVIEW,
+  ];
+  const teamBoard = state.stations.map((station) => {
+    const execution = executions
+      .filter((e) => e.stationId === station.id && OPEN_STATUSES.includes(e.status))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+    const assignment = execution
+      ? state.assignments.find((a) => a.id === execution.assignmentId)
+      : undefined;
+    return { station, execution, assignment };
   });
 
   return (
@@ -284,33 +293,59 @@ function ManagerDashboard({ state }: { state: AppState }) {
         <Metric label="Fail rate" value={`${metrics.failureRate}%`} tone="text-destructive" />
       </div>
 
-      <section className="rounded-lg border border-border bg-surface">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <header className="border-b border-border px-4 py-2.5">
-          <h2 className="text-sm font-semibold">Live testing</h2>
+          <h2 className="text-sm font-semibold">Team testing board</h2>
         </header>
-        <ul className="divide-y divide-border">
-          {liveStations.map(({ station, active }) => (
-            <li key={station.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-              <span className="mono-id w-20 text-primary">{station.code}</span>
-              {active ? (
-                <>
-                  <span className="min-w-0 flex-1 truncate">
-                    {userById(state, active.testerId)?.name}
-                  </span>
-                  <span className="tabular-nums text-xs text-muted-foreground">
-                    {executionProgress(state, active).completed}/
-                    {executionProgress(state, active).total}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-xs text-info">
-                    <span className="size-1.5 rounded-full bg-info" /> Testing
-                  </span>
-                </>
-              ) : (
-                <span className="text-xs text-muted-foreground">Idle</span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <table className="w-full text-sm">
+          <thead className="border-b border-border text-left">
+            <tr className="label-caps">
+              <th className="px-4 py-2 font-medium">Station</th>
+              <th className="px-4 py-2 font-medium">Tester</th>
+              <th className="px-4 py-2 font-medium">Progress</th>
+              <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-3 py-2 text-right font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {teamBoard.map(({ station, execution, assignment }) => {
+              const tester = execution ? userById(state, execution.testerId) : undefined;
+              const prog = execution ? executionProgress(state, execution) : null;
+              return (
+                <tr key={station.id}>
+                  <td className="px-4 py-2.5">
+                    <span className="mono-id text-primary">{station.code}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{station.name}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{tester?.name ?? "—"}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">
+                    {prog ? `${prog.completed}/${prog.total}` : "—"}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {execution ? (
+                      <StatusBadge status={execution.status} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Idle</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {assignment && (
+                      <ReassignSheet
+                        assignment={assignment}
+                        execution={execution}
+                        trigger={
+                          <Button size="sm" variant="ghost">
+                            Reassign
+                          </Button>
+                        }
+                      />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -379,6 +414,18 @@ function SeniorManagerDashboard({ state }: { state: AppState }) {
     return { station, metrics: computeQualityMetrics(stationResults) };
   });
 
+  if (metrics.totalResolved === 0) {
+    return (
+      <div className="space-y-5">
+        <EmptyState
+          icon={Inbox}
+          title="Insufficient execution history"
+          description="Quality metrics appear here once checks have been resolved across executions. Nothing has been resolved yet."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 divide-border rounded-lg border border-border bg-surface sm:grid-cols-4">
@@ -425,10 +472,16 @@ function SeniorManagerDashboard({ state }: { state: AppState }) {
             {stations.map(({ station, metrics: m }) => (
               <li key={station.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                 <span className="mono-id w-16 text-primary">{station.code}</span>
-                <Progress value={m.firstPassYield} className="h-1.5 flex-1" />
-                <span className="w-28 text-right text-xs text-muted-foreground tabular-nums">
-                  FPY {m.firstPassYield}%
-                </span>
+                {m.totalResolved > 0 ? (
+                  <>
+                    <Progress value={m.firstPassYield} className="h-1.5 flex-1" />
+                    <span className="w-28 text-right text-xs text-muted-foreground tabular-nums">
+                      FPY {m.firstPassYield}%
+                    </span>
+                  </>
+                ) : (
+                  <span className="flex-1 text-xs text-muted-foreground">No executions yet</span>
+                )}
               </li>
             ))}
           </ul>

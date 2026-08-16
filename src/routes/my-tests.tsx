@@ -137,15 +137,16 @@ function MyTestsPage() {
             description="Adjust the filters above, or clear the search to see your full assignment list."
           />
         ) : (
-          <table className="w-full text-sm">
+          // Three real columns at every width — no viewport-conditional hidden
+          // columns — so the Action button can never be pushed off-screen or
+          // clipped; secondary detail (station, progress, updated time) lives
+          // as wrapping meta text inside the Unit cell instead.
+          <table className="w-full table-fixed text-sm">
             <thead className="border-b border-border text-left">
               <tr className="label-caps">
                 <th className="px-4 py-2 font-medium">Unit</th>
-                <th className="hidden px-4 py-2 font-medium md:table-cell">Station</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="hidden px-4 py-2 font-medium sm:table-cell">Progress</th>
-                <th className="hidden px-4 py-2 font-medium lg:table-cell">Updated</th>
-                <th className="px-4 py-2 text-right font-medium">Action</th>
+                <th className="w-28 px-4 py-2 font-medium sm:w-36">Status</th>
+                <th className="w-24 px-3 py-2 text-right font-medium sm:w-32">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -154,7 +155,7 @@ function MyTestsPage() {
                 const stationRow = stationById(state, execution.stationId);
                 return (
                   <tr key={execution.id} className="hover:bg-accent/40">
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5 align-top">
                       <Link
                         to="/units/$unitId"
                         params={{ unitId: unit.id }}
@@ -162,30 +163,27 @@ function MyTestsPage() {
                       >
                         {unit.usn}
                       </Link>
-                      <p className="max-w-sm truncate">
+                      <p className="truncate">
                         {template.name} Rev {template.revision}
                       </p>
-                      <div className="mt-1 flex items-center gap-2">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                         {assignment && <PriorityBadge priority={assignment.priority} />}
-                        <span className="mono-id text-xs text-muted-foreground">
-                          {execution.code}
+                        <span className="mono-id">{execution.code}</span>
+                        {stationRow && (
+                          <span>
+                            {stationRow.code} · {stationRow.name}
+                          </span>
+                        )}
+                        <span className="tabular-nums">
+                          {progress.completed}/{progress.total} checks
                         </span>
+                        <span>{format(new Date(execution.updatedAt), "dd MMM, HH:mm")}</span>
                       </div>
                     </td>
-                    <td className="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
-                      {stationRow?.code}
-                      <span className="block text-xs">{stationRow?.name}</span>
-                    </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5 align-top">
                       <StatusBadge status={execution.status} role={user?.role} />
                     </td>
-                    <td className="hidden px-4 py-2.5 text-xs text-muted-foreground tabular-nums sm:table-cell">
-                      {progress.completed}/{progress.total} checks
-                    </td>
-                    <td className="hidden px-4 py-2.5 text-xs text-muted-foreground lg:table-cell">
-                      {format(new Date(execution.updatedAt), "dd MMM, HH:mm")}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-3 py-2.5 text-right align-top">
                       <Button
                         asChild
                         size="sm"

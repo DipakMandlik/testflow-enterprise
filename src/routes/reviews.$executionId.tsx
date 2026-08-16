@@ -1,12 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { Sparkles } from "lucide-react";
+import { Paperclip, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/tms/AppShell";
 import { ActivityTimeline } from "@/components/tms/Timeline";
 import { CheckStatusBadge, StatusBadge } from "@/components/tms/badges";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useTms } from "@/lib/tms/store";
 import {
@@ -30,7 +38,7 @@ import {
   userById,
 } from "@/lib/tms/services";
 import { canReviewExecution } from "@/lib/tms/permissions";
-import { FAILED_CHECK_STATUSES } from "@/types/domain";
+import { FAILED_CHECK_STATUSES, type TemplateCheck } from "@/types/domain";
 
 export const Route = createFileRoute("/reviews/$executionId")({
   head: () => ({
@@ -45,6 +53,8 @@ export const Route = createFileRoute("/reviews/$executionId")({
   component: ReviewPage,
 });
 
+type ReviewFilter = "all" | "failures" | "retest" | "evidence";
+
 function ReviewPage() {
   const { executionId } = Route.useParams();
   const { state, run } = useTms();
@@ -53,6 +63,8 @@ function ReviewPage() {
   const execution = executionById(state, executionId);
 
   const [comment, setComment] = useState("");
+  const [filter, setFilter] = useState<ReviewFilter>("all");
+  const [openCheckId, setOpenCheckId] = useState<string | null>(null);
   const [selectedChecks, setSelectedChecks] = useState<string[]>(() => {
     if (!execution) return [];
     return categoriesFor(state, execution.templateId)
@@ -77,17 +89,40 @@ function ReviewPage() {
 
   const template = templateById(state, execution.templateId);
   const unit = unitById(state, execution.unitId);
-  const categories = template ? categoriesFor(state, template.id) : [];
+  const checks = template
+    ? categoriesFor(state, template.id).flatMap((cat) => checksForCategory(state, cat.id))
+    : [];
   const progress = executionProgress(state, execution);
   const hotspots = failureHotspots(state);
   const decidable = canReviewExecution(user, execution);
   const canReject = decidable && comment.trim().length >= 15;
   const canRetest = decidable && comment.trim().length >= 15 && selectedChecks.length > 0;
+  const openCheck = checks.find((c) => c.id === openCheckId);
 
   const toggleCheck = (checkId: string, checked: boolean) => {
     setSelectedChecks((prev) =>
       checked ? [...prev, checkId] : prev.filter((id) => id !== checkId),
     );
+  };
+
+  const matchesFilter = (check: TemplateCheck) => {
+    const result = currentCheckResult(state, execution.id, check.id);
+    const evidenceCount = evidenceForCheck(
+      state,
+      execution.id,
+      check.id,
+      result?.attempt ?? 1,
+    ).length;
+    switch (filter) {
+      case "failures":
+        return !!result && FAILED_CHECK_STATUSES.includes(result.status);
+      case "retest":
+        return result?.status === "retest_required" || result?.status === "retest_in_progress";
+      case "evidence":
+        return evidenceCount > 0;
+      default:
+        return true;
+    }
   };
 
   return (
@@ -98,135 +133,79 @@ function ReviewPage() {
     >
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <section className="overflow-hidden rounded-lg border border-border bg-surface">
-          <header className="flex items-center justify-between border-b border-border px-4 py-2.5 text-sm">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5 text-sm">
             <h2 className="font-semibold">Recorded results</h2>
             <span className="text-xs text-muted-foreground tabular-nums">
               {progress.passed} passed · {progress.failed} failed · {progress.na} n/a · round{" "}
               {execution.round}
             </span>
           </header>
+          <div className="border-b border-border px-4 py-2.5">
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as ReviewFilter)}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="failures">Failures</TabsTrigger>
+                <TabsTrigger value="retest">Retest</TabsTrigger>
+                <TabsTrigger value="evidence">Evidence</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <div className="divide-y divide-border">
-            {categories.map((cat) => (
-              <div key={cat.id}>
-                <p className="label-caps bg-muted/30 px-4 py-2">{cat.name}</p>
-                <ol className="divide-y divide-border">
-                  {checksForCategory(state, cat.id).map((check) => {
-                    const result = currentCheckResult(state, execution.id, check.id);
-                    const attempts = attemptsForCheck(state, execution.id, check.id);
-                    const checkEvidence = evidenceForCheck(
-                      state,
-                      execution.id,
-                      check.id,
-                      result?.attempt ?? 1,
-                    );
-                    const similar =
-                      result &&
-                      FAILED_CHECK_STATUSES.includes(result.status) &&
-                      result.failureDescription.trim()
-                        ? similarFailures(state, result.failureDescription, result.id)
-                        : [];
-                    return (
-                      <li key={check.id} className="space-y-2 px-4 py-3">
-                        <div className="flex items-start gap-3">
+            {(template ? categoriesFor(state, template.id) : []).map((cat) => {
+              const catChecks = checksForCategory(state, cat.id).filter(matchesFilter);
+              if (!catChecks.length) return null;
+              return (
+                <div key={cat.id}>
+                  <p className="label-caps bg-muted px-4 py-2">{cat.name}</p>
+                  <ol className="divide-y divide-border">
+                    {catChecks.map((check) => {
+                      const result = currentCheckResult(state, execution.id, check.id);
+                      const evidenceCount = evidenceForCheck(
+                        state,
+                        execution.id,
+                        check.id,
+                        result?.attempt ?? 1,
+                      ).length;
+                      return (
+                        <li key={check.id} className="flex items-center gap-3 px-4 py-2.5">
                           {decidable && (
                             <Checkbox
-                              className="mt-0.5"
                               checked={selectedChecks.includes(check.id)}
                               onCheckedChange={(checked) => toggleCheck(check.id, checked === true)}
                               aria-label={`Flag ${check.checkCode} for retest`}
                             />
                           )}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="mono-id text-muted-foreground">
-                                {check.checkCode}
+                          <button
+                            type="button"
+                            onClick={() => setOpenCheckId(check.id)}
+                            className="flex min-w-0 flex-1 items-center gap-3 text-left text-sm transition-colors duration-150 hover:text-primary"
+                          >
+                            <span className="mono-id shrink-0 text-muted-foreground">
+                              {check.checkCode}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">{check.title}</span>
+                            {evidenceCount > 0 && (
+                              <Paperclip className="size-3.5 shrink-0 text-muted-foreground" />
+                            )}
+                            {result && result.attempt > 1 && (
+                              <span className="label-caps shrink-0 text-warning">
+                                Attempt {result.attempt}
                               </span>
-                              <span className="text-sm font-medium">{check.title}</span>
-                              <CheckStatusBadge status={result?.status ?? "not_started"} />
-                              {result && result.attempt > 1 && (
-                                <span className="label-caps text-warning">
-                                  attempt {result.attempt}
-                                </span>
-                              )}
-                            </div>
-                            {result?.actualResult && (
-                              <p className="mt-1 text-sm">
-                                <span className="label-caps mr-2">Actual</span>
-                                {result.actualResult}
-                              </p>
                             )}
-                            {result?.testerNotes && (
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                <span className="label-caps mr-2">Notes</span>
-                                {result.testerNotes}
-                              </p>
-                            )}
-                            {result && FAILED_CHECK_STATUSES.includes(result.status) && (
-                              <div className="mt-1.5 rounded-sm border border-destructive/40 bg-destructive/5 p-2 text-sm">
-                                <p className="text-xs text-destructive">
-                                  {result.failureCategory ?? "Uncategorized"} ·{" "}
-                                  {result.failureSeverity ?? "unspecified"} severity
-                                </p>
-                                {result.failureDescription && (
-                                  <p className="mt-1">{result.failureDescription}</p>
-                                )}
-                              </div>
-                            )}
-                            {similar.length > 0 && (
-                              <div className="mt-1.5 rounded-sm border border-info/30 bg-info/10 p-2 text-xs text-info">
-                                <p className="mb-1 flex items-center gap-1.5 font-medium">
-                                  <Sparkles className="size-3.5" /> AI-assisted recommendation —
-                                  requires Quality validation
-                                </p>
-                                <ul className="space-y-1">
-                                  {similar.map((s, i) => (
-                                    <li key={i}>
-                                      {s.executionCode} · {s.checkCode}: "{s.description}"
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {checkEvidence.length > 0 && (
-                              <ul className="mt-1.5 flex flex-wrap gap-2">
-                                {checkEvidence.map((ev) => (
-                                  <li key={ev.id} className="rounded-sm border border-border p-1">
-                                    {ev.mimeType.startsWith("image/") ? (
-                                      <img
-                                        src={ev.dataUrl}
-                                        alt={ev.filename}
-                                        className="h-16 w-24 object-cover"
-                                      />
-                                    ) : (
-                                      <span className="px-2 text-xs">{ev.filename}</span>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                            {attempts.length > 1 && (
-                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                                <span className="label-caps text-muted-foreground">
-                                  Retest history
-                                </span>
-                                {attempts.map((a) => (
-                                  <span key={a.id} className="flex items-center gap-1 text-xs">
-                                    <span className="mono-id text-muted-foreground">
-                                      #{a.attempt}
-                                    </span>
-                                    <CheckStatusBadge status={a.status} />
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            ))}
+                            <CheckStatusBadge status={result?.status ?? "not_started"} />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              );
+            })}
+            {!checks.filter(matchesFilter).length && (
+              <p className="px-4 py-6 text-sm text-muted-foreground">
+                No checks match this filter.
+              </p>
+            )}
           </div>
         </section>
 
@@ -349,6 +328,148 @@ function ReviewPage() {
           </div>
         </aside>
       </div>
+
+      <Sheet open={!!openCheck} onOpenChange={(o) => !o && setOpenCheckId(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          {openCheck &&
+            (() => {
+              const result = currentCheckResult(state, execution.id, openCheck.id);
+              const attempts = attemptsForCheck(state, execution.id, openCheck.id);
+              const checkEvidence = evidenceForCheck(
+                state,
+                execution.id,
+                openCheck.id,
+                result?.attempt ?? 1,
+              );
+              const similar =
+                result &&
+                FAILED_CHECK_STATUSES.includes(result.status) &&
+                result.failureDescription.trim()
+                  ? similarFailures(state, result.failureDescription, result.id)
+                  : [];
+              return (
+                <>
+                  <SheetHeader>
+                    <SheetTitle>
+                      <span className="mono-id text-primary">{openCheck.checkCode}</span>{" "}
+                      {openCheck.title}
+                    </SheetTitle>
+                    <SheetDescription>
+                      <CheckStatusBadge status={result?.status ?? "not_started"} />
+                      {result && result.attempt > 1 && (
+                        <span className="label-caps ml-2 text-warning">
+                          Attempt {result.attempt}
+                        </span>
+                      )}
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-5 space-y-4 text-sm">
+                    <div>
+                      <p className="label-caps">Expected result</p>
+                      <p className="mt-1 text-muted-foreground">{openCheck.expectedResult}</p>
+                    </div>
+                    <div>
+                      <p className="label-caps">Observed (actual result)</p>
+                      <p className="mt-1">{result?.actualResult || "Not recorded."}</p>
+                    </div>
+                    {result?.testerNotes && (
+                      <div>
+                        <p className="label-caps">Tester notes</p>
+                        <p className="mt-1 text-muted-foreground">{result.testerNotes}</p>
+                      </div>
+                    )}
+                    {result && FAILED_CHECK_STATUSES.includes(result.status) && (
+                      <div className="rounded-sm border border-destructive/40 bg-destructive/5 p-3">
+                        <p className="label-caps text-destructive">Failure</p>
+                        <p className="mt-1 text-xs text-destructive">
+                          {result.failureCategory ?? "Uncategorized"} ·{" "}
+                          {result.failureSeverity ?? "unspecified"} severity
+                        </p>
+                        {result.failureDescription && (
+                          <p className="mt-1">{result.failureDescription}</p>
+                        )}
+                      </div>
+                    )}
+                    {similar.length > 0 && (
+                      <div className="rounded-sm border border-info/30 bg-info/10 p-3 text-xs text-info">
+                        <p className="mb-1 flex items-center gap-1.5 font-semibold">
+                          <Sparkles className="size-3.5" /> Quality Intelligence
+                        </p>
+                        <p className="text-muted-foreground">
+                          {similar.length} similar failure{similar.length === 1 ? "" : "s"} observed
+                          across recent executions.
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                          {similar.map((s, i) => (
+                            <li key={i}>
+                              {s.executionCode} · {s.checkCode}: "{s.description}"
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 border-t border-info/20 pt-1.5 font-semibold">
+                          AI-assisted recommendation — Quality validation required.
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="label-caps">
+                        Evidence {checkEvidence.length > 0 && `(${checkEvidence.length})`}
+                      </p>
+                      {checkEvidence.length > 0 ? (
+                        <ul className="mt-1.5 flex flex-wrap gap-2">
+                          {checkEvidence.map((ev) => (
+                            <li key={ev.id} className="rounded-sm border border-border p-1">
+                              {ev.mimeType.startsWith("image/") ? (
+                                <img
+                                  src={ev.dataUrl}
+                                  alt={ev.filename}
+                                  className="h-24 w-36 object-cover"
+                                />
+                              ) : (
+                                <span className="px-2 text-xs">{ev.filename}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-1 text-xs text-muted-foreground">No evidence attached.</p>
+                      )}
+                    </div>
+                    {attempts.length > 1 && (
+                      <div>
+                        <p className="label-caps">Previous attempts</p>
+                        <ul className="mt-1.5 space-y-1.5">
+                          {attempts.map((a) => (
+                            <li key={a.id} className="flex items-center gap-2 text-xs">
+                              <span className="mono-id text-muted-foreground">
+                                Attempt {a.attempt}
+                              </span>
+                              <CheckStatusBadge status={a.status} />
+                              {a.completedAt && (
+                                <span className="text-muted-foreground">
+                                  {format(new Date(a.completedAt), "dd MMM HH:mm")}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {decidable && (
+                      <label className="flex items-center gap-2 border-t border-border pt-4 text-sm">
+                        <Checkbox
+                          checked={selectedChecks.includes(openCheck.id)}
+                          onCheckedChange={(checked) => toggleCheck(openCheck.id, checked === true)}
+                        />
+                        Flag this check for retest
+                      </label>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+        </SheetContent>
+      </Sheet>
     </AppShell>
   );
 }

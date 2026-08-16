@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { AppShell } from "@/components/tms/AppShell";
+import { ReassignSheet } from "@/components/tms/ReassignSheet";
 import { ActivityTimeline } from "@/components/tms/Timeline";
 import { PriorityBadge } from "@/components/tms/badges";
 import { Button } from "@/components/ui/button";
@@ -186,15 +187,36 @@ function NewUserDialog() {
 function UsersSection() {
   const { state, run } = useTms();
   const admin = canManageUsers(currentUser(state)!);
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const users = state.users.filter(
+    (u) =>
+      !q ||
+      u.name.toLowerCase().includes(q) ||
+      u.employeeId.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q),
+  );
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface">
-      <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <h2 className="text-sm font-semibold">Users ({state.users.length})</h2>
-        {admin && <NewUserDialog />}
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+        <h2 className="text-sm font-semibold">
+          Users ({users.length}
+          {users.length !== state.users.length ? ` of ${state.users.length}` : ""})
+        </h2>
+        <div className="flex items-center gap-2">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, ID or email"
+            className="h-8 w-56"
+            aria-label="Search users"
+          />
+          {admin && <NewUserDialog />}
+        </div>
       </header>
       <ul className="divide-y divide-border">
-        {state.users.map((u) => (
+        {users.map((u) => (
           <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{u.name}</p>
@@ -239,6 +261,9 @@ function UsersSection() {
             )}
           </li>
         ))}
+        {!users.length && (
+          <li className="px-4 py-6 text-sm text-muted-foreground">No users match this search.</li>
+        )}
       </ul>
     </section>
   );
@@ -873,6 +898,7 @@ function UnitsAssignmentsSection() {
             const unit = state.units.find((u) => u.id === a.unitId);
             const template = templateById(state, a.templateId);
             const tester = userById(state, a.testerId);
+            const execution = state.executions.find((e) => e.assignmentId === a.id);
             return (
               <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
                 <span className="mono-id text-primary">{unit?.usn}</span>
@@ -883,6 +909,17 @@ function UnitsAssignmentsSection() {
                 <span className="text-xs text-muted-foreground">
                   due {new Date(a.dueAt).toLocaleDateString()}
                 </span>
+                {manage && (
+                  <ReassignSheet
+                    assignment={a}
+                    execution={execution}
+                    trigger={
+                      <Button size="sm" variant="ghost">
+                        Reassign
+                      </Button>
+                    }
+                  />
+                )}
               </li>
             );
           })}

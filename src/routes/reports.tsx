@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { Download } from "lucide-react";
+import { Download, Inbox } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -17,6 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { AppShell } from "@/components/tms/AppShell";
+import { EmptyState } from "@/components/tms/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useTms } from "@/lib/tms/store";
 import {
@@ -150,177 +151,193 @@ function ReportsPage() {
         ) : undefined
       }
     >
-      <div className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <p className="label-caps">First pass yield</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-success">
-              {overall.firstPassYield}%
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <p className="label-caps">Failure rate</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-destructive">
-              {overall.failureRate}%
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <p className="label-caps">Retest rate</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-warning">
-              {overall.retestRate}%
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <p className="label-caps">Checks resolved</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{overall.totalResolved}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          <section className="rounded-lg border border-border bg-surface p-4">
-            <h2 className="text-sm font-semibold">Execution status distribution</h2>
-            <div className="mt-3 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={50}
-                    outerRadius={90}
-                  >
-                    {statusData.map((_, i) => (
-                      <Cell key={i} fill={TONES[i % TONES.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+      {overall.totalResolved === 0 ? (
+        <EmptyState
+          icon={Inbox}
+          title="Insufficient execution history"
+          description="Reports appear here once checks have been resolved across executions. Nothing has been resolved yet."
+        />
+      ) : (
+        <div className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <p className="label-caps">First pass yield</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-success">
+                {overall.firstPassYield}%
+              </p>
             </div>
-          </section>
-
-          <section className="rounded-lg border border-border bg-surface p-4">
-            <h2 className="text-sm font-semibold">Pass / fail trend</h2>
-            <div className="mt-3 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={12} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={12} allowDecimals={false} />
-                  <Tooltip cursor={{ fill: "var(--accent)" }} />
-                  <Line
-                    type="monotone"
-                    dataKey="passed"
-                    stroke="var(--success)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="failed"
-                    stroke="var(--destructive)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <p className="label-caps">Failure rate</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-destructive">
+                {overall.failureRate}%
+              </p>
             </div>
-          </section>
-
-          <section className="rounded-lg border border-border bg-surface p-4">
-            <h2 className="text-sm font-semibold">Failure category hotspots</h2>
-            <p className="text-xs text-muted-foreground">Click a bar to see the flagged checks.</p>
-            <div className="mt-3 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={hotspots}
-                  layout="vertical"
-                  margin={{ left: 40 }}
-                  onClick={(e) => {
-                    const cat = (e as { activeLabel?: string })?.activeLabel;
-                    if (cat) setSelectedCategory((prev) => (prev === cat ? null : cat));
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    stroke="var(--muted-foreground)"
-                    fontSize={12}
-                    allowDecimals={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="category"
-                    stroke="var(--muted-foreground)"
-                    fontSize={12}
-                    width={110}
-                  />
-                  <Tooltip cursor={{ fill: "var(--accent)" }} />
-                  <Bar dataKey="count" fill="var(--chart-4)" radius={3} cursor="pointer" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <p className="label-caps">Retest rate</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-warning">
+                {overall.retestRate}%
+              </p>
             </div>
-            {selectedCategory && (
-              <div className="mt-3 rounded-sm border border-border p-2">
-                <p className="label-caps">
-                  Flagged as "{selectedCategory}" ({flaggedForCategory.length})
-                </p>
-                <ul className="mt-1.5 max-h-40 space-y-1 overflow-y-auto text-xs">
-                  {flaggedForCategory.map((r) => {
-                    const execution = executionById(state, r.executionId);
-                    const check = checkById(state, r.templateCheckId);
-                    return (
-                      <li key={r.id} className="flex gap-2">
-                        <span className="mono-id text-primary">{execution?.code}</span>
-                        <span className="text-muted-foreground">{check?.checkCode}</span>
-                        <span className="truncate">{r.failureDescription}</span>
-                      </li>
-                    );
-                  })}
-                  {!flaggedForCategory.length && (
-                    <li className="text-muted-foreground">No flagged checks in this category.</li>
-                  )}
-                </ul>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <p className="label-caps">Checks resolved</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{overall.totalResolved}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            <section className="rounded-lg border border-border bg-surface p-4">
+              <h2 className="text-sm font-semibold">Execution status distribution</h2>
+              <div className="mt-3 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={50}
+                      outerRadius={90}
+                    >
+                      {statusData.map((_, i) => (
+                        <Cell key={i} fill={TONES[i % TONES.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            )}
-          </section>
+            </section>
 
-          <section className="rounded-lg border border-border bg-surface p-4">
-            <h2 className="text-sm font-semibold">Station performance</h2>
-            <div className="mt-3 space-y-2">
-              {stations.map(({ station, metrics }) => (
-                <div key={station.id} className="rounded-sm border border-border p-2.5 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">
-                      {station.code} · {station.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {metrics.totalResolved} resolved
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    <span>
-                      FPY{" "}
-                      <span className="tabular-nums text-success">{metrics.firstPassYield}%</span>
-                    </span>
-                    <span>
-                      Failure rate{" "}
-                      <span className="tabular-nums text-destructive">{metrics.failureRate}%</span>
-                    </span>
-                    <span>
-                      Retest rate{" "}
-                      <span className="tabular-nums text-warning">{metrics.retestRate}%</span>
-                    </span>
-                  </div>
+            <section className="rounded-lg border border-border bg-surface p-4">
+              <h2 className="text-sm font-semibold">Pass / fail trend</h2>
+              <div className="mt-3 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={12} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={12} allowDecimals={false} />
+                    <Tooltip cursor={{ fill: "var(--accent)" }} />
+                    <Line
+                      type="monotone"
+                      dataKey="passed"
+                      stroke="var(--success)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="failed"
+                      stroke="var(--destructive)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-border bg-surface p-4">
+              <h2 className="text-sm font-semibold">Failure category hotspots</h2>
+              <p className="text-xs text-muted-foreground">
+                Click a bar to see the flagged checks.
+              </p>
+              <div className="mt-3 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={hotspots}
+                    layout="vertical"
+                    margin={{ left: 40 }}
+                    onClick={(e) => {
+                      const cat = (e as { activeLabel?: string })?.activeLabel;
+                      if (cat) setSelectedCategory((prev) => (prev === cat ? null : cat));
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      stroke="var(--muted-foreground)"
+                      fontSize={12}
+                      allowDecimals={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="category"
+                      stroke="var(--muted-foreground)"
+                      fontSize={12}
+                      width={110}
+                    />
+                    <Tooltip cursor={{ fill: "var(--accent)" }} />
+                    <Bar dataKey="count" fill="var(--chart-4)" radius={3} cursor="pointer" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {selectedCategory && (
+                <div className="mt-3 rounded-sm border border-border p-2">
+                  <p className="label-caps">
+                    Flagged as "{selectedCategory}" ({flaggedForCategory.length})
+                  </p>
+                  <ul className="mt-1.5 max-h-40 space-y-1 overflow-y-auto text-xs">
+                    {flaggedForCategory.map((r) => {
+                      const execution = executionById(state, r.executionId);
+                      const check = checkById(state, r.templateCheckId);
+                      return (
+                        <li key={r.id} className="flex gap-2">
+                          <span className="mono-id text-primary">{execution?.code}</span>
+                          <span className="text-muted-foreground">{check?.checkCode}</span>
+                          <span className="truncate">{r.failureDescription}</span>
+                        </li>
+                      );
+                    })}
+                    {!flaggedForCategory.length && (
+                      <li className="text-muted-foreground">No flagged checks in this category.</li>
+                    )}
+                  </ul>
                 </div>
-              ))}
-              {!stations.length && (
-                <p className="text-sm text-muted-foreground">No stations configured.</p>
               )}
-            </div>
-          </section>
+            </section>
+
+            <section className="rounded-lg border border-border bg-surface p-4">
+              <h2 className="text-sm font-semibold">Station performance</h2>
+              <div className="mt-3 space-y-2">
+                {stations.map(({ station, metrics }) => (
+                  <div key={station.id} className="rounded-sm border border-border p-2.5 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">
+                        {station.code} · {station.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {metrics.totalResolved} resolved
+                      </span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      <span>
+                        FPY{" "}
+                        <span className="tabular-nums text-success">{metrics.firstPassYield}%</span>
+                      </span>
+                      <span>
+                        Failure rate{" "}
+                        <span className="tabular-nums text-destructive">
+                          {metrics.failureRate}%
+                        </span>
+                      </span>
+                      <span>
+                        Retest rate{" "}
+                        <span className="tabular-nums text-warning">{metrics.retestRate}%</span>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {!stations.length && (
+                  <p className="text-sm text-muted-foreground">No stations configured.</p>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
-      </div>
+      )}
     </AppShell>
   );
 }

@@ -69,7 +69,7 @@ async function passCurrentCheck(page: Page, actual: string, opts: { evidence?: b
 }
 
 async function nextRequiredCheck(page: Page) {
-  await page.getByRole("button", { name: /Next required check/ }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
 }
 
 test.describe("Pibythree Quality Hub — critical workflow", () => {
@@ -155,8 +155,8 @@ test.describe("Pibythree Quality Hub — critical workflow", () => {
     await expect(page.getByRole("heading", { name: /CON-001/ })).toBeVisible();
     await passCurrentCheck(page, "Associated with the reference access point within spec.");
 
-    // No mandatory checks remain — the jump button disappears.
-    await expect(page.getByRole("button", { name: /Next required check/ })).toHaveCount(0);
+    // No mandatory checks remain — the completion banner replaces the "next required" prompt.
+    await expect(page.getByText("Quality worksheet complete")).toBeVisible();
 
     // ---- Submit for review ----
     await page.getByRole("button", { name: "Submit for review" }).click();
@@ -180,9 +180,13 @@ test.describe("Pibythree Quality Hub — critical workflow", () => {
     await pendingRow.getByRole("link", { name: "Review" }).click();
     await expect(page).toHaveURL(/\/reviews\/exec-1$/);
 
+    await expect(page.getByRole("checkbox", { name: "Flag ACO-002 for retest" })).toBeChecked();
+
+    // Open the check detail sheet to inspect the failure and AI-assisted insight.
+    await page.getByRole("button", { name: /ACO-002/ }).click();
     await expect(page.getByText("95 dB")).toBeVisible();
     await expect(page.getByText("AI-assisted recommendation")).toBeVisible();
-    await expect(page.getByRole("checkbox", { name: "Flag ACO-002 for retest" })).toBeChecked();
+    await page.keyboard.press("Escape");
 
     await page
       .getByPlaceholder(/Review comment/)
@@ -229,7 +233,9 @@ test.describe("Pibythree Quality Hub — critical workflow", () => {
       .click();
     const secondReviewRow = page.locator("li", { hasText: "EX-1041" });
     await secondReviewRow.getByRole("link", { name: "Review" }).click();
-    await expect(page.getByText("Retest history")).toBeVisible();
+    await page.getByRole("button", { name: /ACO-002/ }).click();
+    await expect(page.getByText("Previous attempts")).toBeVisible();
+    await page.keyboard.press("Escape");
     await page
       .getByPlaceholder(/Review comment/)
       .fill("Retest confirms output within range. Approved.");

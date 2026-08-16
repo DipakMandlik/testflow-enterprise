@@ -5,9 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Tata Electronics TMS design system.
- * Industrial control-room language: graphite surfaces, copper signal accent,
- * dense typography, precise 1px separation instead of heavy card stacking.
+ * Pibythree Quality Hub design system.
+ * White enterprise language: soft cool-white surfaces, Pibythree blue accent,
+ * deep navy/charcoal text, dense typography, precise 1px separation instead
+ * of heavy card stacking or gradients.
  */
 
 @theme inline {
@@ -61,55 +62,51 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --shadow-panel: 0 1px 0 0 oklch(1 0 0 / 4%) inset, 0 12px 30px -18px oklch(0 0 0 / 80%);
+  --shadow-panel: 0 1px 0 0 oklch(1 0 0 / 60%) inset, 0 8px 24px -16px oklch(0.24 0.03 260 / 18%);
 }
 
 :root {
-  --radius: 0.4rem;
-  --background: oklch(0.18 0.008 250);
-  --foreground: oklch(0.94 0.005 250);
-  --surface: oklch(0.215 0.009 250);
-  --panel: oklch(0.235 0.01 250);
-  --card: oklch(0.215 0.009 250);
-  --card-foreground: oklch(0.94 0.005 250);
-  --popover: oklch(0.225 0.01 250);
-  --popover-foreground: oklch(0.94 0.005 250);
-  --primary: oklch(0.74 0.14 62);
-  --primary-foreground: oklch(0.19 0.02 60);
-  --secondary: oklch(0.27 0.011 250);
-  --secondary-foreground: oklch(0.92 0.005 250);
-  --muted: oklch(0.26 0.01 250);
-  --muted-foreground: oklch(0.68 0.012 250);
-  --accent: oklch(0.3 0.015 250);
-  --accent-foreground: oklch(0.95 0.005 250);
-  --destructive: oklch(0.62 0.19 25);
-  --destructive-foreground: oklch(0.97 0.01 25);
-  --success: oklch(0.68 0.13 165);
-  --success-foreground: oklch(0.18 0.02 165);
-  --warning: oklch(0.79 0.14 82);
-  --warning-foreground: oklch(0.2 0.03 82);
-  --info: oklch(0.68 0.11 235);
-  --info-foreground: oklch(0.17 0.02 235);
-  --border: oklch(0.31 0.012 250);
-  --input: oklch(0.33 0.012 250);
-  --ring: oklch(0.74 0.14 62);
-  --chart-1: oklch(0.74 0.14 62);
-  --chart-2: oklch(0.68 0.13 165);
-  --chart-3: oklch(0.62 0.19 25);
-  --chart-4: oklch(0.68 0.11 235);
-  --chart-5: oklch(0.72 0.08 300);
-  --sidebar: oklch(0.2 0.009 250);
-  --sidebar-foreground: oklch(0.9 0.005 250);
-  --sidebar-primary: oklch(0.74 0.14 62);
-  --sidebar-primary-foreground: oklch(0.19 0.02 60);
-  --sidebar-accent: oklch(0.27 0.011 250);
-  --sidebar-accent-foreground: oklch(0.95 0.005 250);
-  --sidebar-border: oklch(0.29 0.012 250);
-  --sidebar-ring: oklch(0.74 0.14 62);
-}
-
-.dark {
-  color-scheme: dark;
+  --radius: 0.5rem;
+  --background: oklch(0.985 0.003 250);
+  --foreground: oklch(0.24 0.025 260);
+  --surface: oklch(1 0 0);
+  --panel: oklch(0.98 0.004 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.025 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.025 260);
+  --primary: oklch(0.5 0.19 262);
+  --primary-foreground: oklch(0.99 0.003 260);
+  --secondary: oklch(0.955 0.006 255);
+  --secondary-foreground: oklch(0.28 0.03 260);
+  --muted: oklch(0.96 0.005 255);
+  --muted-foreground: oklch(0.48 0.02 258);
+  --accent: oklch(0.945 0.018 262);
+  --accent-foreground: oklch(0.32 0.05 262);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0.005 25);
+  --success: oklch(0.55 0.13 152);
+  --success-foreground: oklch(0.99 0.01 152);
+  --warning: oklch(0.72 0.15 75);
+  --warning-foreground: oklch(0.24 0.04 75);
+  --info: oklch(0.55 0.15 240);
+  --info-foreground: oklch(0.99 0.008 240);
+  --border: oklch(0.9 0.007 255);
+  --input: oklch(0.88 0.008 255);
+  --ring: oklch(0.5 0.19 262);
+  --chart-1: oklch(0.5 0.19 262);
+  --chart-2: oklch(0.55 0.13 152);
+  --chart-3: oklch(0.72 0.15 75);
+  --chart-4: oklch(0.55 0.2 25);
+  --chart-5: oklch(0.55 0.12 300);
+  --sidebar: oklch(0.995 0.002 255);
+  --sidebar-foreground: oklch(0.3 0.03 260);
+  --sidebar-primary: oklch(0.5 0.19 262);
+  --sidebar-primary-foreground: oklch(0.99 0.003 260);
+  --sidebar-accent: oklch(0.95 0.015 262);
+  --sidebar-accent-foreground: oklch(0.32 0.05 262);
+  --sidebar-border: oklch(0.92 0.006 255);
+  --sidebar-ring: oklch(0.5 0.19 262);
 }
 
 @layer base {
@@ -118,7 +115,7 @@
   }
 
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
@@ -135,7 +132,7 @@
   }
 
   ::selection {
-    background: oklch(0.74 0.14 62 / 30%);
+    background: oklch(0.5 0.19 262 / 20%);
   }
 }
 

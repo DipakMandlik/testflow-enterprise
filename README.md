@@ -42,9 +42,13 @@ tool and evolved in place into this product on the same architecture.
   for the checks the Quality Checker flags, so "Attempt 1 Failed 14:22 → Attempt 2 Passed
   15:11" is a real, permanent record. During a retest round the worksheet only allows editing
   the flagged check(s) — everything else is locked read-only.
-- **Quality Checker review** — inspect every check's result, evidence and retest history,
-  filter the queue to failures only, then Approve, Reject or Request Retest (with a required
-  comment and a multi-select of exactly which checks need re-testing).
+- **Quality Checker review** — a scannable check list (filterable to All/Failures/Retest/Evidence)
+  opens a detail Sheet per check (expected/observed, failure detail, evidence, retest history,
+  AI-assisted insight), then Approve, Reject or Request Retest from the same screen (with a
+  required comment and a multi-select of exactly which checks need re-testing).
+- **Manager assignment reassignment** — a Reassign sheet (in Admin and the Manager dashboard's
+  team testing board) hands an assignment and its execution to a different tester through the
+  existing `reassignAssignment` service call, blocked once the execution is approved/completed.
 - **Reports & AI-assisted insight** — First Pass Yield, failure rate, retest rate, failure
   category hotspots (click to see the flagged checks), station performance and a pass/fail
   trend, plus a CSV export. "AI-assisted" surfaces are a deterministic, local, disclosed
@@ -58,6 +62,9 @@ tool and evolved in place into this product on the same architecture.
   timeline component renders both.
 - **Global search** — `Ctrl/Cmd K` command palette over units, executions, checks and
   navigation.
+- **White enterprise design system** — a single light theme (Pibythree blue primary, soft
+  cool-white surfaces, professional green/amber/red semantics) driven entirely by the OKLCH
+  tokens in `src/styles.css`; no dark theme is offered.
 - **State consistency** — one `AppState` object (users, plants/stations/devices, templates,
   units, assignments, executions, check results, evidence, reviews, notifications, audit) is
   the single source of truth for every screen; no component maintains its own copy of workflow
@@ -95,14 +102,14 @@ attempts are never edited or deleted.
 
 ## Demo credentials
 
-| Employee ID | Name          | Role             |
-| ----------- | ------------- | ---------------- |
-| `TE-1001`   | Priya Sharma  | Tester           |
-| `TE-2001`   | Rajesh Kumar  | Quality Checker  |
-| `TE-3001`   | Anita Desai   | Manager          |
-| `TE-4001`   | Arjun Nair    | Senior Manager   |
-| `TE-5001`   | Kavya Menon   | Template Manager |
-| `TE-9001`   | Admin User    | Administrator    |
+| Employee ID | Name         | Role             |
+| ----------- | ------------ | ---------------- |
+| `TE-1001`   | Priya Sharma | Tester           |
+| `TE-2001`   | Rajesh Kumar | Quality Checker  |
+| `TE-3001`   | Anita Desai  | Manager          |
+| `TE-4001`   | Arjun Nair   | Senior Manager   |
+| `TE-5001`   | Kavya Menon  | Template Manager |
+| `TE-9001`   | Admin User   | Administrator    |
 
 **Password:** `pibythree@2026` · **OTP:** `123456` (also shown on the sign-in screen)
 
@@ -128,7 +135,7 @@ as **real but locally-scoped** rather than faked:
 - **Camera capture** — a real `<input type="file" capture="environment">`, which genuinely
   opens the device camera on phones/tablets; not simulated.
 - **Location verification** — selecting from a configured list of plants/locations/stations,
-  not real GPS. The *gate* itself is real: a session field plus a route guard enforced in the
+  not real GPS. The _gate_ itself is real: a session field plus a route guard enforced in the
   domain service layer (`canAccessWorksheet`), not just a hidden UI element.
 - **Device "last seen"** — a manually-settable field, not live telemetry.
 - **Export** — client-side CSV generation (Blob + download), not PDF rendering.

@@ -251,6 +251,17 @@ function TemplateDetailPage() {
       }
     >
       <div className="space-y-5">
+        {previewMode && (
+          <section className="flex items-center gap-2 rounded-lg border border-primary/25 bg-accent px-4 py-3 text-sm">
+            <Eye className="size-4 shrink-0 text-primary" />
+            <span>
+              <span className="font-medium text-primary">Previewing as tester —</span> this is
+              exactly what the Digital Quality Worksheet will show once assigned. No changes save
+              while previewing.
+            </span>
+          </section>
+        )}
+
         {editable && problems.length > 0 && (
           <section className="rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm text-warning">
             <p className="label-caps mb-1.5">Not ready to publish</p>
