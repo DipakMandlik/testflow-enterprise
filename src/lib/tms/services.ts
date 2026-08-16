@@ -305,7 +305,7 @@ export function submitExecution(state: AppState, actor: User, executionId: strin
   if (!execution) return fail("Execution not found.");
   if (!canSubmitExecution(actor, execution)) return fail("You cannot submit this execution.");
   const problems = validateSubmission(state, execution);
-  if (problems.length) return fail(problems[0]);
+  if (problems.length) return fail(problems[0] ?? "Execution is incomplete.");
 
   const resubmission = execution.status === ExecutionStatus.SENT_BACK;
   let next = patchExecution(state, executionId, {
