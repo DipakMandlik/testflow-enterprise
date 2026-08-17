@@ -20,6 +20,13 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
+    // Verify-location requests real device geolocation as supporting
+    // evidence on the verification record. Grant it with a fixed mock
+    // position (Hosur, Tamil Nadu) so the "granted" path is exercised
+    // deterministically instead of depending on real hardware/network
+    // geolocation, which isn't available in CI anyway.
+    permissions: ["geolocation"],
+    geolocation: { latitude: 12.7409, longitude: 77.8253, accuracy: 35 },
   },
   webServer: {
     command: "bun run dev -- --port 4173 --strictPort --host 127.0.0.1",

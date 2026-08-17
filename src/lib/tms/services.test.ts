@@ -148,6 +148,34 @@ describe("location / station verification gate", () => {
     expect(verifyStation(located.value, user, "sta-eqt-04").ok).toBe(false); // maintenance
   });
 
+  it("rejects an active station in a different location at the same plant", () => {
+    // sta-eqt-03 is active, but it's in loc-lab, not the verified loc-eqt-line
+    // — same plant is not enough, the station must be in the verified
+    // location too.
+    const { state, user } = loggedInAs("TE-1001");
+    const located = verifyLocation(state, user, "p-hosur", "loc-eqt-line");
+    expect(located.ok).toBe(true);
+    if (!located.ok) return;
+    expect(verifyStation(located.value, user, "sta-eqt-03").ok).toBe(false);
+  });
+
+  it("captures a real device geolocation signal as supporting evidence on the verification event", () => {
+    const { state, user } = loggedInAs("TE-1001");
+    const located = verifyLocation(state, user, "p-hosur", "loc-eqt-line", {
+      lat: 12.7409,
+      lng: 77.8253,
+      accuracyM: 35,
+    });
+    expect(located.ok).toBe(true);
+    if (!located.ok) return;
+    expect(located.value.session?.deviceGeo).toMatchObject({ lat: 12.7409, lng: 77.8253 });
+    expect(
+      auditFor(located.value, user.id).some(
+        (a) => a.action === "location.verified" && "deviceSignal" in a.metadata,
+      ),
+    ).toBe(true);
+  });
+
   it("grants worksheet access once both location and station are verified", () => {
     const { state, user } = verifiedTester("TE-1001");
     expect(canAccessWorksheet(state, user)).toBe(true);

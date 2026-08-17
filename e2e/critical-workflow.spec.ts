@@ -32,15 +32,17 @@ async function login(page: Page, employeeId: string) {
   // A tester with no verified session for this login is gated to
   // verify-location -> verify-station before reaching the dashboard — the
   // real navigation-guard enforced in AppShell, not a decorative redirect.
+  // Both steps are card pickers (not <select>s) so a real device-geolocation
+  // signal can be shown alongside the manual selection without blocking it.
   if (page.url().includes("/verify-location")) {
-    const comboboxes = page.getByRole("combobox");
-    await comboboxes.nth(1).click();
-    await page.getByRole("option", { name: "Building A — EQT Line" }).click();
+    // The mock geolocation granted in playwright.config.ts should surface as
+    // a real captured signal, not just the "unavailable" fallback.
+    await expect(page.getByText(/12\.7409, 77\.8253/)).toBeVisible();
+    await page.getByRole("button", { name: "Building A — EQT Line" }).click();
     await page.getByRole("button", { name: "Verify location" }).click();
     await expect(page).toHaveURL(/\/verify-station$/);
 
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "EQT-01 — EQT Station 1" }).click();
+    await page.getByRole("button", { name: /EQT-01 — EQT Station 1/ }).click();
     await page.getByRole("button", { name: "Verify station" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
   }

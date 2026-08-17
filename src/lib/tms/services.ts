@@ -167,6 +167,9 @@ export const checkById = (state: AppState, id: string) =>
 export const stationsForPlant = (state: AppState, plantId: string) =>
   state.stations.filter((s) => s.plantId === plantId);
 
+export const stationsForLocation = (state: AppState, locationId: string) =>
+  state.stations.filter((s) => s.locationId === locationId);
+
 export const locationsForPlant = (state: AppState, plantId: string) =>
   state.locations.filter((l) => l.plantId === plantId);
 
@@ -342,6 +345,7 @@ export function verifyOtp(state: AppState, code: string): Result<AppState> {
       locationVerifiedAt: null,
       stationId: null,
       stationVerifiedAt: null,
+      deviceGeo: null,
     },
   };
   next = audit(next, userId, "auth.login", "User", userId);
@@ -363,12 +367,14 @@ export function verifyLocation(
   actor: User,
   plantId: string,
   locationId: string,
+  deviceGeo?: { lat: number; lng: number; accuracyM: number } | null,
 ): Result<AppState> {
   if (!state.session || state.session.userId !== actor.id) return fail("Session expired.");
   const plant = plantById(state, plantId);
   const location = locationById(state, locationId);
   if (!plant || !location || location.plantId !== plantId)
     return fail("Select a valid plant and location.");
+  const capturedGeo = deviceGeo ? { ...deviceGeo, capturedAt: new Date().toISOString() } : null;
   let next: AppState = {
     ...state,
     session: {
@@ -378,12 +384,18 @@ export function verifyLocation(
       locationVerifiedAt: new Date().toISOString(),
       stationId: null,
       stationVerifiedAt: null,
+      deviceGeo: capturedGeo,
     },
   };
-  next = audit(next, actor.id, "location.verified", "User", actor.id, {
+  const metadata: Record<string, string | number> = {
     plant: plant.name,
     location: location.name,
-  });
+  };
+  if (capturedGeo) {
+    metadata["deviceSignal"] =
+      `${capturedGeo.lat.toFixed(4)}, ${capturedGeo.lng.toFixed(4)} (±${Math.round(capturedGeo.accuracyM)}m)`;
+  }
+  next = audit(next, actor.id, "location.verified", "User", actor.id, metadata);
   return ok(next);
 }
 
@@ -392,8 +404,12 @@ export function verifyStation(state: AppState, actor: User, stationId: string): 
   if (!state.session.locationVerifiedAt)
     return fail("Verify your location before selecting a station.");
   const station = stationById(state, stationId);
-  if (!station || station.plantId !== state.session.plantId)
-    return fail("Select a station within your verified plant.");
+  if (
+    !station ||
+    station.plantId !== state.session.plantId ||
+    station.locationId !== state.session.locationId
+  )
+    return fail("Select a station within your verified location.");
   if (station.status !== "active") return fail("This station is not currently active.");
   let next: AppState = {
     ...state,
