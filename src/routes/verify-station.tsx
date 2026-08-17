@@ -67,7 +67,7 @@ function VerifyStationPage() {
     <div className="auth-scene flex min-h-screen items-center justify-center px-5 py-12">
       <div className="w-full max-w-sm">
         <div className="rounded-xl border border-border bg-card p-8 shadow-xl">
-          <Logo size={40} className="mx-auto" />
+          <Logo height={40} className="mx-auto" />
           <div className="mx-auto mt-4 grid size-11 place-items-center rounded-sm border border-border bg-surface">
             <Radio className="size-5 text-primary" aria-hidden />
           </div>

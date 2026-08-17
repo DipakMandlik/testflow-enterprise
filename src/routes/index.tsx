@@ -75,14 +75,14 @@ function LoginPage() {
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       <section className="auth-scene relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex">
         <div className="flex items-center gap-3">
-          <Logo size={40} />
+          <Logo height={44} />
           <div>
-            <p className="font-semibold">Pibythree Quality Hub</p>
+            <p className="font-semibold">Quality Hub</p>
             <p className="text-xs text-white/60">Digital Quality Inspection</p>
           </div>
         </div>
         <div className="max-w-lg">
-          <p className="label-caps text-white/50">Transforming Enterprises for the Future</p>
+          <p className="label-caps text-white/50">Transforming Enterprises for Future</p>
           <h2 className="mt-2 text-3xl font-semibold leading-tight">
             Every quality check, tracked from first inspection to final approval.
           </h2>
@@ -115,9 +115,9 @@ function LoginPage() {
       <section className="flex items-center justify-center px-5 py-12">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <Logo size={36} />
+            <Logo height={34} />
             <div>
-              <p className="text-sm font-semibold">Pibythree Quality Hub</p>
+              <p className="text-sm font-semibold">Quality Hub</p>
               <p className="text-[11px] text-muted-foreground">Digital Quality Inspection</p>
             </div>
           </div>

@@ -227,11 +227,8 @@ export function AppShell({
       <div className="flex">
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
           <div className="flex items-center gap-2.5 border-b border-sidebar-border px-4 py-4">
-            <Logo size={32} />
-            <div className="leading-tight">
-              <p className="text-sm font-semibold">Pibythree</p>
-              <p className="text-[11px] text-muted-foreground">Quality Hub</p>
-            </div>
+            <Logo height={34} />
+            <p className="text-sm font-semibold leading-tight">Quality Hub</p>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             <NavLinks user={user} />
@@ -265,7 +262,7 @@ export function AppShell({
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64 p-4">
                   <SheetTitle className="mb-4 flex items-center gap-2 text-sm">
-                    <Logo size={24} /> Pibythree Quality Hub
+                    <Logo height={24} /> Quality Hub
                   </SheetTitle>
                   <NavLinks user={user} onNavigate={() => setMobileNav(false)} />
                 </SheetContent>
