@@ -32,15 +32,17 @@ async function login(page: Page, employeeId: string) {
   // A tester with no verified session for this login is gated to
   // verify-location -> verify-station before reaching the dashboard — the
   // real navigation-guard enforced in AppShell, not a decorative redirect.
+  // Both steps are card pickers (not <select>s) so a real device-geolocation
+  // signal can be shown alongside the manual selection without blocking it.
   if (page.url().includes("/verify-location")) {
-    const comboboxes = page.getByRole("combobox");
-    await comboboxes.nth(1).click();
-    await page.getByRole("option", { name: "Building A — EQT Line" }).click();
+    // The mock geolocation granted in playwright.config.ts should surface as
+    // a real captured signal, not just the "unavailable" fallback.
+    await expect(page.getByText(/12\.7409, 77\.8253/)).toBeVisible();
+    await page.getByRole("button", { name: "Building A — EQT Line" }).click();
     await page.getByRole("button", { name: "Verify location" }).click();
     await expect(page).toHaveURL(/\/verify-station$/);
 
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "EQT-01 — EQT Station 1" }).click();
+    await page.getByRole("button", { name: /EQT-01 — EQT Station 1/ }).click();
     await page.getByRole("button", { name: "Verify station" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
   }
@@ -92,24 +94,24 @@ test.describe("Pibythree Quality Hub — critical workflow", () => {
     await page.getByRole("button", { name: "Start execution" }).click();
 
     // ---- Work through every mandatory check via "Next required check" ----
+    // The template spans all 15 real EQT categories end to end (Check IN
+    // through Check Out); only a curated gate check per category is
+    // mandatory, so the golden path still exercises the full checklist
+    // breadth without requiring all 113 checks to be resolved.
     await expect(page.getByRole("heading", { name: /CHK-001/ })).toBeVisible();
     await passCurrentCheck(page, "No visible transport damage.", { evidence: true });
     await nextRequiredCheck(page);
 
-    await expect(page.getByRole("heading", { name: /CHK-002/ })).toBeVisible();
-    await passCurrentCheck(page, "USN label matches assignment record.");
+    await expect(page.getByRole("heading", { name: /SHP-001/ })).toBeVisible();
+    await passCurrentCheck(page, "Seals intact, no damage.", { evidence: true });
     await nextRequiredCheck(page);
 
     await expect(page.getByRole("heading", { name: /ACT-001/ })).toBeVisible();
-    await passCurrentCheck(page, "Boot logo appeared within spec.");
-    await nextRequiredCheck(page);
-
-    await expect(page.getByRole("heading", { name: /ACT-002/ })).toBeVisible();
-    await passCurrentCheck(page, "Activation status reported ACTIVATED.");
+    await passCurrentCheck(page, "Boot logo appeared within spec; activation ACTIVATED.");
     await nextRequiredCheck(page);
 
     await expect(page.getByRole("heading", { name: /ACO-001/ })).toBeVisible();
-    await passCurrentCheck(page, "Both channels audible and clear.");
+    await passCurrentCheck(page, "RCAM + Mic 2/3 stress scenario completed cleanly.");
     await nextRequiredCheck(page);
 
     // ---- ACO-002: measurement out of range, auto-computed as failed ----
@@ -130,30 +132,54 @@ test.describe("Pibythree Quality Hub — critical workflow", () => {
     await expect(page.getByText("evidence.txt").first()).toBeVisible();
     await nextRequiredCheck(page);
 
-    await expect(page.getByRole("heading", { name: /CAM-001/ })).toBeVisible();
-    await passCurrentCheck(page, "Sharp focus, accurate colour reproduction.", { evidence: true });
-    await nextRequiredCheck(page);
-
-    await expect(page.getByRole("heading", { name: /CAM-002/ })).toBeVisible();
-    await passCurrentCheck(page, "Live preview rendered within spec.");
-    await nextRequiredCheck(page);
-
-    await expect(page.getByRole("heading", { name: /CAM-003/ })).toBeVisible();
-    await passCurrentCheck(page, "Focus lock achieved within spec on both targets.");
-    await nextRequiredCheck(page);
-
     await expect(page.getByRole("heading", { name: /BAT-001/ })).toBeVisible();
     await passCurrentCheck(page, "Charging indicator activated within spec.");
     await nextRequiredCheck(page);
 
-    await expect(page.getByRole("heading", { name: /BAT-002/ })).toBeVisible();
-    await page.getByLabel(/Measured value/).fill("4.0");
+    await expect(page.getByRole("heading", { name: /BAT-003/ })).toBeVisible();
+    await page.getByLabel(/Measured value/).fill("110");
     await page.getByRole("button", { name: "Record measurement" }).click();
-    await expect(page.getByLabel("Actual result")).toHaveValue("4 V");
+    await expect(page.getByLabel("Actual result")).toHaveValue("110 min");
     await nextRequiredCheck(page);
 
-    await expect(page.getByRole("heading", { name: /CON-001/ })).toBeVisible();
-    await passCurrentCheck(page, "Associated with the reference access point within spec.");
+    await expect(page.getByRole("heading", { name: /BTN-001/ })).toBeVisible();
+    await passCurrentCheck(page, "No squeeze-induced faults observed in case.");
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /CAM-001/ })).toBeVisible();
+    await passCurrentCheck(page, "Mechanical stress plan completed without fault.");
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /WIFI-001/ })).toBeVisible();
+    await passCurrentCheck(page, "Associated and paired within spec.");
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /FCAM-003/ })).toBeVisible();
+    await passCurrentCheck(page, "Portrait capture matches reference sample.", { evidence: true });
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /FOS-006/ })).toBeVisible();
+    await passCurrentCheck(page, "FaceID enrollment completed successfully.");
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /ROS-002/ })).toBeVisible();
+    await passCurrentCheck(page, "Measure app reported accurate readings.");
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /TCH-003/ })).toBeVisible();
+    await passCurrentCheck(page, "Touch response accurate across the panel.");
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /DIS-001/ })).toBeVisible();
+    await passCurrentCheck(page, "Display pattern capture matches reference.", { evidence: true });
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /SWD-001/ })).toBeVisible();
+    await passCurrentCheck(page, "Software download completed and verified.");
+    await nextRequiredCheck(page);
+
+    await expect(page.getByRole("heading", { name: /OUT-001/ })).toBeVisible();
+    await passCurrentCheck(page, "Check-out completed; unit ready for release.");
 
     // No mandatory checks remain — the completion banner replaces the "next required" prompt.
     await expect(page.getByText("Quality worksheet complete")).toBeVisible();

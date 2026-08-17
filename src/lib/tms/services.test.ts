@@ -148,6 +148,34 @@ describe("location / station verification gate", () => {
     expect(verifyStation(located.value, user, "sta-eqt-04").ok).toBe(false); // maintenance
   });
 
+  it("rejects an active station in a different location at the same plant", () => {
+    // sta-eqt-03 is active, but it's in loc-lab, not the verified loc-eqt-line
+    // — same plant is not enough, the station must be in the verified
+    // location too.
+    const { state, user } = loggedInAs("TE-1001");
+    const located = verifyLocation(state, user, "p-hosur", "loc-eqt-line");
+    expect(located.ok).toBe(true);
+    if (!located.ok) return;
+    expect(verifyStation(located.value, user, "sta-eqt-03").ok).toBe(false);
+  });
+
+  it("captures a real device geolocation signal as supporting evidence on the verification event", () => {
+    const { state, user } = loggedInAs("TE-1001");
+    const located = verifyLocation(state, user, "p-hosur", "loc-eqt-line", {
+      lat: 12.7409,
+      lng: 77.8253,
+      accuracyM: 35,
+    });
+    expect(located.ok).toBe(true);
+    if (!located.ok) return;
+    expect(located.value.session?.deviceGeo).toMatchObject({ lat: 12.7409, lng: 77.8253 });
+    expect(
+      auditFor(located.value, user.id).some(
+        (a) => a.action === "location.verified" && "deviceSignal" in a.metadata,
+      ),
+    ).toBe(true);
+  });
+
   it("grants worksheet access once both location and station are verified", () => {
     const { state, user } = verifiedTester("TE-1001");
     expect(canAccessWorksheet(state, user)).toBe(true);
@@ -224,18 +252,18 @@ describe("tester execution workflow", () => {
     // whenever the patch omitted `status`, silently reverting Pass/Fail back
     // to "in progress" on every autosave keystroke.
     const { state, user } = verifiedTester("TE-1001");
-    const passed = saveCheckResult(state, user, "exec-1", "chk-chk-002", {
+    const passed = saveCheckResult(state, user, "exec-1", "chk-shp-001", {
       status: "passed",
-      actualResult: "USN label matches.",
+      actualResult: "Shipping settings match the assignment record.",
     });
     expect(passed.ok).toBe(true);
     if (!passed.ok) return;
-    const noteOnly = saveCheckResult(passed.value, user, "exec-1", "chk-chk-002", {
+    const noteOnly = saveCheckResult(passed.value, user, "exec-1", "chk-shp-001", {
       testerNotes: "Double-checked against the assignment record.",
     });
     expect(noteOnly.ok).toBe(true);
     if (!noteOnly.ok) return;
-    const result = currentCheckResult(noteOnly.value, "exec-1", "chk-chk-002");
+    const result = currentCheckResult(noteOnly.value, "exec-1", "chk-shp-001");
     expect(result?.status).toBe("passed");
     expect(result?.testerNotes).toBe("Double-checked against the assignment record.");
   });
@@ -395,7 +423,7 @@ describe("check-level retest: attempt history is never overwritten", () => {
       reviewerState,
       rajesh.user,
       "exec-4",
-      "Flash exposure looks marginal — please re-run in the darkened booth.",
+      "Ingress result looks marginal — please re-run the environmental seal check.",
       ["chk-cam-004"],
     );
     expect(retested.ok).toBe(true);
@@ -425,7 +453,7 @@ describe("check-level retest: attempt history is never overwritten", () => {
 
     const fixed = saveCheckResult(state, priya.user, "exec-4", "chk-cam-004", {
       status: "passed",
-      actualResult: "Correct exposure on re-run with flash calibrated.",
+      actualResult: "No moisture ingress observed on re-run with the seal reworked.",
     });
     expect(fixed.ok).toBe(true);
     if (!fixed.ok) return;

@@ -155,3 +155,17 @@
   font-size: 0.8125rem;
   letter-spacing: -0.01em;
 }
+
+/*
+ * Premium branded backdrop for the sign-in / verification flow only — a
+ * deliberate marketing-style treatment for onboarding, not a second app
+ * theme. Every authenticated screen still uses the single white enterprise
+ * theme defined above.
+ */
+@utility auth-scene {
+  background-color: oklch(0.16 0.03 264);
+  background-image:
+    radial-gradient(60% 46% at 50% 0%, oklch(0.34 0.1 262 / 55%) 0%, transparent 70%),
+    linear-gradient(165deg, oklch(0.2 0.045 262) 0%, oklch(0.14 0.03 266) 55%, oklch(0.1 0.02 266) 100%);
+}
+

@@ -30,7 +30,11 @@ tool and evolved in place into this product on the same architecture.
   draft revision (check builder with reorder, mandatory/allow-N/A/evidence-required/measurement
   range config), validates and publishes it. Once published, a revision's checks are never
   mutated again; "Create new revision" clones into a fresh draft, and a revision diff shows
-  exactly which checks were added, removed or modified.
+  exactly which checks were added, removed or modified. The seeded `OJAS-EQT` template mirrors
+  the real Standard Checklist for EQT Functional Test of FATP units end to end — 113 checks
+  across all 15 stations of the paper form (Check IN, Shipping Setting, Activation, Acoustics,
+  Battery and Charging, Button, Camera, Wifi, Fcam, Front/Rear Optical Sensing, Touch, Display,
+  SWDL, Check Out).
 - **Digital Quality Worksheet** — category-grouped check list with search/filter, autosave
   (2s debounce, save-state indicator), Pass/Fail/N/A controls, auto-graded measurement checks
   (value compared against the check's acceptance range), a failure-capture panel (category,
@@ -64,7 +68,9 @@ tool and evolved in place into this product on the same architecture.
   navigation.
 - **White enterprise design system** — a single light theme (Pibythree blue primary, soft
   cool-white surfaces, professional green/amber/red semantics) driven entirely by the OKLCH
-  tokens in `src/styles.css`; no dark theme is offered.
+  tokens in `src/styles.css`; no dark theme is offered. The sign-in, OTP and location/station
+  verification flow carries a dedicated premium branded treatment (Pibythree mark, gradient
+  hero, "Powered by Pibythree") — a deliberate onboarding-only exception, not a second app theme.
 - **State consistency** — one `AppState` object (users, plants/stations/devices, templates,
   units, assignments, executions, check results, evidence, reviews, notifications, audit) is
   the single source of truth for every screen; no component maintains its own copy of workflow
@@ -114,9 +120,10 @@ attempts are never edited or deleted.
 **Password:** `pibythree@2026` · **OTP:** `123456` (also shown on the sign-in screen)
 
 Seeded data gives every role something to look at immediately: a published template revision
-with 17 checks across 7 categories, an assigned unit, an in-progress unit, a unit awaiting a
-retest with a real two-attempt history on one check, a unit pending Quality review, one
-completed, and one rejected — the same scenario the E2E test drives end to end.
+with 113 checks across 15 categories (17 of them mandatory for release), an assigned unit, an
+in-progress unit, a unit awaiting a retest with a real two-attempt history on one check, a unit
+pending Quality review, one completed, and one rejected — the same scenario the E2E test drives
+end to end.
 
 ## Honesty notes (what's real vs. simplified, and why)
 

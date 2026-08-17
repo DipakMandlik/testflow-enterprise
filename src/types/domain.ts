@@ -230,6 +230,13 @@ export interface AuditEvent {
   metadata: Record<string, string | number>;
 }
 
+export interface DeviceGeoSignal {
+  lat: number;
+  lng: number;
+  accuracyM: number;
+  capturedAt: string;
+}
+
 export interface Session {
   userId: string;
   issuedAt: string;
@@ -238,6 +245,13 @@ export interface Session {
   locationVerifiedAt: string | null;
   stationId: string | null;
   stationVerifiedAt: string | null;
+  // A real device geolocation reading, captured (with the browser's consent
+  // prompt) at the location-verification step when available. It is
+  // corroborating evidence logged alongside the verification event — the
+  // plant/location the tester explicitly selects remains the authoritative
+  // record, since this app has no known-good plant coordinates to check it
+  // against.
+  deviceGeo: DeviceGeoSignal | null;
 }
 
 export interface User {

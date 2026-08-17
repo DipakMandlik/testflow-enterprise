@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/tms/CommandPalette";
+import { Logo } from "@/components/tms/Logo";
 import { cn } from "@/lib/utils";
 import { useTms } from "@/lib/tms/store";
 import {
@@ -226,13 +227,8 @@ export function AppShell({
       <div className="flex">
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
           <div className="flex items-center gap-2.5 border-b border-sidebar-border px-4 py-4">
-            <div className="grid size-8 place-items-center rounded-sm bg-primary text-primary-foreground">
-              <span className="text-xs font-bold">π3</span>
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold">Pibythree</p>
-              <p className="text-[11px] text-muted-foreground">Quality Hub</p>
-            </div>
+            <Logo height={34} />
+            <p className="text-sm font-semibold leading-tight">Quality Hub</p>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             <NavLinks user={user} />
@@ -246,6 +242,7 @@ export function AppShell({
             >
               <RotateCcw className="size-3.5" /> Reset demo data
             </Button>
+            <p className="mt-2 px-2 text-[10px] text-muted-foreground">Powered by Pibythree</p>
           </div>
         </aside>
 
@@ -264,7 +261,9 @@ export function AppShell({
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64 p-4">
-                  <SheetTitle className="mb-4 text-sm">Pibythree Quality Hub</SheetTitle>
+                  <SheetTitle className="mb-4 flex items-center gap-2 text-sm">
+                    <Logo height={24} /> Quality Hub
+                  </SheetTitle>
                   <NavLinks user={user} onNavigate={() => setMobileNav(false)} />
                 </SheetContent>
               </Sheet>

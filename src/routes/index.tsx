@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/tms/Logo";
 import { useTms } from "@/lib/tms/store";
 import { currentUser, login, DEMO_PASSWORD } from "@/lib/tms/services";
 
@@ -67,50 +68,62 @@ function LoginPage() {
     if (okResult) void navigate({ to: "/otp" });
   });
 
+  const checkCount = state.templateChecks.length;
+  const categoryCount = state.templateCategories.length;
+
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
-      <section className="relative hidden flex-col justify-between border-r border-border bg-surface p-10 lg:flex">
+      <section className="auth-scene relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex">
         <div className="flex items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-sm bg-primary text-primary-foreground font-bold">
-            π3
-          </div>
+          <Logo height={44} />
           <div>
-            <p className="font-semibold">Pibythree Quality Hub</p>
-            <p className="text-xs text-muted-foreground">Digital Quality Inspection</p>
+            <p className="font-semibold">Quality Hub</p>
+            <p className="text-xs text-white/60">Digital Quality Inspection</p>
           </div>
         </div>
         <div className="max-w-lg">
-          <h2 className="text-3xl font-semibold leading-tight">
+          <p className="label-caps text-white/50">Transforming Enterprises for Future</p>
+          <h2 className="mt-2 text-3xl font-semibold leading-tight">
             Every quality check, tracked from first inspection to final approval.
           </h2>
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="mt-4 text-sm text-white/70">
             Guided check execution, failure capture, evidence and a complete audit trail — replacing
             the Excel checklist with a structured digital quality worksheet across the EQT
             functional test programme.
           </p>
-          <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-6">
+          <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-white/15 pt-6">
             {[
-              ["Template families", "1"],
-              ["Quality checks", "17"],
+              ["Categories", String(categoryCount)],
+              ["Quality checks", String(checkCount)],
               ["Traceable events", "Every transition"],
             ].map(([label, value]) => (
               <div key={label}>
-                <dt className="label-caps">{label}</dt>
+                <dt className="label-caps text-white/50">{label}</dt>
                 <dd className="mt-1 text-sm font-medium">{value}</dd>
               </div>
             ))}
           </dl>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Authorised personnel only. All sign-in attempts are logged.
-        </p>
+        <div className="space-y-1">
+          <p className="text-xs text-white/50">
+            Authorised personnel only. All sign-in attempts are logged.
+          </p>
+          <p className="text-xs font-medium text-white/70">Powered by Pibythree</p>
+        </div>
       </section>
 
       <section className="flex items-center justify-center px-5 py-12">
         <div className="w-full max-w-sm">
-          <h1 className="text-xl font-semibold">Sign in</h1>
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <Logo height={34} />
+            <div>
+              <p className="text-sm font-semibold">Quality Hub</p>
+              <p className="text-[11px] text-muted-foreground">Digital Quality Inspection</p>
+            </div>
+          </div>
+          <h1 className="text-xl font-semibold">Employee Sign In</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Use your employee ID. A one-time code follows.
+            Access the enterprise quality inspection console with your employee ID.
           </p>
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4" noValidate>
@@ -183,6 +196,10 @@ function LoginPage() {
               <span className="mono-id">123456</span>
             </p>
           </div>
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Powered by Pibythree · © 2026 Pibythree. Enterprise Quality Solutions.
+          </p>
         </div>
       </section>
     </div>
